@@ -1,5 +1,8 @@
 # https://gist.github.com/octocat/9257657
 
+# self added #
+__pycache__
+
 # Compiled source #
 ###################
 *.com
