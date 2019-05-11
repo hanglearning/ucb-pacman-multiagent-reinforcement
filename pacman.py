@@ -554,6 +554,10 @@ def readCommand(argv):
                       help='Turns on exception handling and timeouts during games', default=False)
     parser.add_option('--timeout', dest='timeout', type='int',
                       help=default('Maximum length of time an agent can spend computing in a single game'), default=30)
+    parser.add_option('--graphics',
+                    dest = 'graphics',
+                    action = 'store_true',
+                    help = 'Display graphics for pacman games.')
 
     options, otherjunk = parser.parse_args(argv)
     if len(otherjunk) != 0:
@@ -606,6 +610,8 @@ def readCommand(argv):
     args['record'] = options.record
     args['catchExceptions'] = options.catchExceptions
     args['timeout'] = options.timeout
+
+    args['graphics'] = options.graphics
 
     # Special case: recorded games don't use the runGames method or args structure
     if options.gameToReplay != None:
@@ -672,7 +678,7 @@ def replayGame(layout, actions, display):
     display.finish()
 
 
-def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, catchExceptions=False, timeout=30):
+def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, catchExceptions=False, timeout=30, graphics=False):
     import __main__
     __main__.__dict__['_display'] = display
 
@@ -681,7 +687,7 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
 
     for i in range(numGames):
         beQuiet = i < numTraining
-        if beQuiet:
+        if not graphics:
                 # Suppress output and graphics
             import textDisplay
             gameDisplay = textDisplay.NullGraphics()
