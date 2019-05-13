@@ -52,6 +52,7 @@ import types
 import time
 import random
 import os
+import warnings
 
 ###################################################
 # YOUR INTERFACE TO THE PACMAN WORLD: A GameState #
@@ -557,7 +558,11 @@ def readCommand(argv):
     parser.add_option('--graphics',
                     dest = 'graphics',
                     action = 'store_true',
-                    help = 'Display graphics for pacman games.')
+                    help = default('Display graphics for pacman games.'), default=False)
+    parser.add_option('--graphicsUpdateFrequency',
+                    dest = 'graphicsUpdateFrequency',
+                    type = 'int',
+                    help = default('Set graphics update frequency for the game board if graphics is set to True.'), default=None)
 
     options, otherjunk = parser.parse_args(argv)
     if len(otherjunk) != 0:
@@ -612,6 +617,7 @@ def readCommand(argv):
     args['timeout'] = options.timeout
 
     args['graphics'] = options.graphics
+    args['graphicsUpdateFrequency'] = options.graphicsUpdateFrequency
 
     # Special case: recorded games don't use the runGames method or args structure
     if options.gameToReplay != None:
@@ -678,26 +684,56 @@ def replayGame(layout, actions, display):
     display.finish()
 
 
-def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, catchExceptions=False, timeout=30, graphics=False):
+def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, catchExceptions=False, timeout=30, graphics=False, graphicsUpdateFrequency=None):
     import __main__
     __main__.__dict__['_display'] = display
 
     rules = ClassicGameRules(timeout)
     games = []
 
+    # Hang - Helper variables to check UI display condition
+    displayEveryRound = False
+    toDisplay = []
+    # if graphics and graphicsUpdateFrequency both set, set the above two variables
+    if graphicsUpdateFrequency != None:
+        if graphics == False:
+            # show warning
+            warnings.warn("--graphics is not specified, with graphicsUpdateFrequency value specified.\nGame board will not be displayed.")
+        else:
+            if numGames < graphicsUpdateFrequency:
+                warnings.warn("graphicsUpdateFrequency value larger than the number of games. Game board will be displayed every round.")
+                displayEveryRound = True
+            else:
+                displayInterval = int(numGames/graphicsUpdateFrequency)
+                for i in range(graphicsUpdateFrequency + 1):
+                    toDisplay.append(displayInterval * i)
+
     for i in range(numGames):
         beQuiet = i < numTraining
-        if not graphics:
-                # Suppress output and graphics
+        
+        if (graphics and (i in toDisplay)) or displayEveryRound:
+            if i == 0:
+                if displayEveryRound:
+                    print("Game starts.")
+                else:
+                    print("Game starts. Round ", end = "")
+                    for roundIter in range(1, graphicsUpdateFrequency):
+                        print(f'{toDisplay[roundIter]}, ', end = "")
+                    print(f"and {toDisplay[graphicsUpdateFrequency]} will be displayed.")
+            else:
+                print(f"Game {i} displays.")
+            gameDisplay = display
+            rules.quiet = False
+        else:
+             # Suppress output and graphics
             import textDisplay
             gameDisplay = textDisplay.NullGraphics()
             rules.quiet = True
-        else:
-            gameDisplay = display
-            rules.quiet = False
+        
         game = rules.newGame(layout, pacman, ghosts,
                              gameDisplay, beQuiet, catchExceptions)
         game.run()
+                
         if not beQuiet:
             games.append(game)
 
