@@ -10,8 +10,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": ["-p", "ApproximateQAgent", "-x", "9", "-n", "9", "-l", "smallGrid", "--graphics", "--graphicsUpdateFrequency", "9"]
-            //"args": ["-p", "ApproximateQAgent", "-n", "2113", "-l", "smallGrid", "--graphics", "--graphicsUpdateFrequency", "10"]
+            "args": ["-p", "ApproximateQAgent", "-x", "30", "-n", "30", "-l", "smallGrid", "--graphics", "--graphicsUpdateFrequency", "3"]
             //"args": ["-p", "ApproximateQAgent", "-x", "2000", "-n", "2113", "-l", "smallGrid", "--graphics", "--graphicsUpdateFrequency", "10"]
         }
     ]

@@ -693,7 +693,7 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
 
     # Hang - Helper variables to check UI display condition
     displayEveryRound = False
-    toDisplay = []
+    toDisplay = [1]
     # if graphics and graphicsUpdateFrequency both set, set the above two variables
     if graphicsUpdateFrequency != None:
         if graphics == False:
@@ -705,14 +705,14 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
                 displayEveryRound = True
             else:
                 displayInterval = int(numGames/graphicsUpdateFrequency)
-                for i in range(graphicsUpdateFrequency + 1):
+                for i in range(1, graphicsUpdateFrequency + 1):
                     toDisplay.append(displayInterval * i)
 
-    for i in range(numGames):
-        beQuiet = i < numTraining
+    for i in range(1, numGames+1):
+        beQuiet = i < (numTraining+1)
         
         if (graphics and (i in toDisplay)) or displayEveryRound:
-            if i == 0:
+            if i == 1:
                 if displayEveryRound:
                     print("Game starts.")
                 else:
@@ -720,6 +720,7 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
                     for roundIter in range(1, graphicsUpdateFrequency):
                         print(f'{toDisplay[roundIter]}, ', end = "")
                     print(f"and {toDisplay[graphicsUpdateFrequency]} will be displayed.")
+                    print(f"Game 1 displays.")
             else:
                 print(f"Game {i} displays.")
             gameDisplay = display
