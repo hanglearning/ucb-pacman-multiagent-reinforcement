@@ -124,19 +124,27 @@ class ComplexExtractor(FeatureExtractor):
         capsule = state.getCapsules()
         walls = state.getWalls()
         ghosts = state.getGhostPositions()
+        ghosts_state = state.getGhostStates()
 
         features = util.Counter()
 
-        features["bias"] = 1.0
+        features["bias"] = 10.0
 
         # compute the location of pacman after he takes the action
         x, y = state.getPacmanPosition()
         dx, dy = Actions.directionToVector(action)
         next_x, next_y = int(x + dx), int(y + dy)
 
+        dist_ghost = list(map(lambda pos_g: abs(pos_g[0]-next_x)+abs(pos_g[1]-next_y), ghosts))
+        nearest_ghost_dist = min(dist_ghost)
+        for nearest_ghost in range(len(dist_ghost)):
+            if dist_ghost[nearest_ghost] == nearest_ghost_dist:
+                break
+
         # count the number of ghosts 1-step away
         features["#-of-ghosts-1-step-away"] = sum((next_x, next_y) in Actions.getLegalNeighbors(g, walls) for g in ghosts)
-        features["dst-from-nearest-ghost"] = math.sqrt(min(map(lambda pos_g: (pos_g[0]-next_x)**2+(pos_g[1]-next_y)**2, ghosts)))
+        features["dst-from-nearest-ghost"] = nearest_ghost_dist
+        features["nearest-ghost-scared"] = ghosts_state[nearest_ghost].scaredTimer
 
         # if there is no danger of ghosts then add the food feature
         if not features["#-of-ghosts-1-step-away"] and food[next_x][next_y]:
