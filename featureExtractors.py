@@ -128,7 +128,7 @@ class ComplexExtractor(FeatureExtractor):
 
         features = util.Counter()
 
-        features["bias"] = 10.0
+        # features["bias"] = 10.0
 
         # compute the location of pacman after he takes the action
         x, y = state.getPacmanPosition()
@@ -143,23 +143,31 @@ class ComplexExtractor(FeatureExtractor):
 
         # count the number of ghosts 1-step away
         features["#-of-ghosts-1-step-away"] = sum((next_x, next_y) in Actions.getLegalNeighbors(g, walls) for g in ghosts)
-        features["dst-from-nearest-ghost"] = nearest_ghost_dist
-        features["nearest-ghost-scared"] = ghosts_state[nearest_ghost].scaredTimer
+        features["#-of-ghosts-1-step-away-edible"] = sum((next_x, next_y) in Actions.getLegalNeighbors(ghosts[i], walls) for i in range(len(ghosts)) if ghosts_state[i].scaredTimer > 0)
+
+        features.divideAll(10.0)
 
         # if there is no danger of ghosts then add the food feature
         if not features["#-of-ghosts-1-step-away"] and food[next_x][next_y]:
-            features["eats-food"] = 1.0
-        
-        features.divideAll(10.0)
+            features["eats-food"] = 1.
+        else:
+            features["eats-food"] = 0.
+
+        features["nearest-ghost-edible"] = 1. if ghosts_state[nearest_ghost].scaredTimer > 0 else 0.
 
         dist_food = closestFood((next_x, next_y), food, walls)
         dist_capsule = closestCapsule((next_x, next_y), capsule, walls)
         
+        features["closest-food"] = 1.
+        features["closest-capsule"] = 1.
+
+        features["dst-from-nearest-ghost"] = float(nearest_ghost_dist) / (walls.width + walls.height)
         if dist_food is not None:
             # make the distance a number less than one otherwise the update
             # will diverge wildly
-            features["closest-food"] = float(dist_food) / (walls.width * walls.height)
+            features["closest-food"] = float(dist_food) / (walls.width + walls.height)
         if dist_capsule is not None:
-            features["closest-capsule"] = float(dist_capsule) / (walls.width * walls.height)
+            features["closest-capsule"] = float(dist_capsule) / (walls.width + walls.height)
+        # print(features)
         return features
         
