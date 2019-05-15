@@ -1,6 +1,6 @@
-# https://github.com/takeitallsource/berkeley-cs-188/blob/master/project-3/reinforcement/qlearningAgents.py
+# https://github.com/takeitallsource/berkeley-cs-188/blob/master/project-3/reinforcement/SarsaAgents.py
 
-# qlearningAgents.py
+# SarsaAgents.py
 # ------------------
 # Licensing Information:  You are free to use or extend these projects for
 # educational purposes provided that (1) you do not distribute or publish
@@ -22,7 +22,7 @@ from learningAgents import ReinforcementAgent
 from featureExtractors import *
 
 
-class QLearningAgent(ReinforcementAgent):
+class SarsaAgent(ReinforcementAgent):
     """
       Sarsa Agent
 
@@ -136,14 +136,14 @@ class QLearningAgent(ReinforcementAgent):
         self.q_table[state][action] = qvalue
 
 
-class PacmanQAgent(QLearningAgent):
-    "Exactly the same as QLearningAgent, but with different default parameters"
+class PacmanSarsaAgent(SarsaAgent):
+    "Exactly the same as SarsaAgent, but with different default parameters"
 
     def __init__(self, epsilon=0.05, gamma=0.8, alpha=0.2, numTraining=0, **args):
         """
         These default parameters can be changed from the pacman.py command line.
         For example, to change the exploration rate, try:
-            python pacman.py -p PacmanQLearningAgent -a epsilon=0.1
+            python pacman.py -p PacmanSarsaAgent -a epsilon=0.1
 
         alpha    - learning rate
         epsilon  - exploration rate
@@ -155,30 +155,30 @@ class PacmanQAgent(QLearningAgent):
         args['alpha'] = alpha
         args['numTraining'] = numTraining
         self.index = 0  # This is always Pacman
-        QLearningAgent.__init__(self, **args)
+        SarsaAgent.__init__(self, **args)
 
     def getAction(self, state):
         """
-        Simply calls the getAction method of QLearningAgent and then
+        Simply calls the getAction method of SarsaAgent and then
         informs parent of action for Pacman.  Do not change or remove this
         method.
         """
-        action = QLearningAgent.getAction(self, state)
+        action = SarsaAgent.getAction(self, state)
         self.doAction(state, action)
         return action
 
 
-class ApproximateQAgent(PacmanQAgent):
+class ApproximateSarsaAgent(PacmanSarsaAgent):
     """
-       ApproximateQLearningAgent
+       ApproximateSarsaAgent
        You should only have to overwrite getQValue
-       and update.  All other QLearningAgent functions
+       and update.  All other SarsaAgent functions
        should work as is.
     """
 
     def __init__(self, extractor='ComplexExtractor', **args):
         self.featExtractor = util.lookup(extractor, globals())()
-        PacmanQAgent.__init__(self, **args)
+        PacmanSarsaAgent.__init__(self, **args)
         self.weights = util.Counter()
 
     def getWeights(self):
@@ -207,12 +207,14 @@ class ApproximateQAgent(PacmanQAgent):
         # difference = reward + self.discount * self.computeValueFromQValues(nextState) - self.getQValue(state, action)
         features = self.featExtractor.getFeatures(state, action)
         for feature_key in features:
+            if feature_key not in self.weights.keys():
+                self.weights[feature_key] = random.uniform(-1.,1.)
             self.weights[feature_key] += self.alpha * difference * features[feature_key]
 
     def final(self, state):
         "Called at the end of each game."
         # call the super-class final method
-        PacmanQAgent.final(self, state)
+        PacmanSarsaAgent.final(self, state)
 
         # did we finish training?
         if self.episodesSoFar == self.numTraining:
