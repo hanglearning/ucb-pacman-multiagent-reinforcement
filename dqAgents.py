@@ -80,8 +80,8 @@ class PacmanDQAgent(DQAgent):
     
     def replay(self):
         n_samples = len(self.replay_buffer)
-        x = np.array([pairs[0] for pairs in self.replay_buffer[-min(50, n_samples):]]).astype(np.float32)
-        y = np.array([pairs[1] for pairs in self.replay_buffer[-min(50, n_samples):]]).astype(np.float32)[:,np.newaxis]
+        x = np.array([pairs[0] for pairs in self.replay_buffer[-min(10000, n_samples):]]).astype(np.float32)
+        y = np.array([pairs[1] for pairs in self.replay_buffer[-min(10000, n_samples):]]).astype(np.float32)[:,np.newaxis]
         self.train(x, y, self.dqnet)
     
     def train(self, x, y, model, lr=1e-3, batch_size=20, episode=10):
