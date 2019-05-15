@@ -113,7 +113,7 @@ class PacmanDQAgent(DQAgent):
     def final(self, state):
         "Called at the end of each game."
         # call the super-class final method
-        # PacmanDQAgent.final(self, state)
+        DQAgent.final(self, state)
 
         # did we finish training?
         if self.episodesSoFar == self.numTraining:
