@@ -16,6 +16,7 @@ class DQAgent(ReinforcementAgent):
 class PacmanDQAgent(DQAgent):
     def __init__(self, extractor='ComplexExtractor', **args):
         self.dqnet = DQN(n_features=8)
+        self.dqnet.cuda()
         self.feat_extractor = util.lookup(extractor, globals())()
         self.action_mapping = {'North':0, 'South':1, 'East':2, 'West':3, 'Stop':4}
         self.replay_buffer = []
@@ -29,8 +30,8 @@ class PacmanDQAgent(DQAgent):
         return feature
 
     def getQValue(self, state, action):
-        feature = self.getFeature(state, action)
-        return self.dqnet(feature).detach().numpy()[0]
+        feature = torch.from_numpy(self.getFeature(state, action)).cuda()
+        return self.dqnet(feature).detach().cpu().numpy()[0]
     
     def computeValueFromQValues(self, state):
         legalActions = self.getLegalActions(state)
@@ -82,10 +83,10 @@ class PacmanDQAgent(DQAgent):
         n_samples = len(self.replay_buffer)
         x = np.array([pairs[0] for pairs in self.replay_buffer[-min(10000, n_samples):]]).astype(np.float32)
         y = np.array([pairs[1] for pairs in self.replay_buffer[-min(10000, n_samples):]]).astype(np.float32)[:,np.newaxis]
-        self.train(x, y, self.dqnet)
+        self.train(x, y)
     
-    def train(self, x, y, model, lr=1e-3, batch_size=20, episode=10):
-        opti = optim.SGD(model.parameters(), lr=lr)
+    def train(self, x, y, lr=1e-2, batch_size=20, episode=10):
+        opti = optim.Adam(self.dqnet.parameters(), lr=lr)
         n_samples = x.shape[0]
         if n_samples < 1:
             return
@@ -99,16 +100,19 @@ class PacmanDQAgent(DQAgent):
             for i in range(int(batches)):
                 start_index = i*batch_size
                 end_index = min(start_index+batch_size, n_samples)
-                batch_x = x[start_index:end_index]
+                batch_x = torch.from_numpy(x[start_index:end_index]).cuda()
                 batch_y = y[start_index:end_index]
-                outp = model(batch_x)
-                loss = model.criterion(outp, torch.from_numpy(batch_y))
+                outp = self.dqnet(batch_x)
+                loss = self.dqnet.criterion(outp, torch.from_numpy(batch_y).cuda())
                 # print(loss.detach().numpy())
-                avg_loss += loss.detach().numpy()
+                # print("-----")
+                # print("grad: {}".format(self.dqnet.fc1.weight.detach().cpu().numpy()))
+                # print("-----")
                 opti.zero_grad()
                 loss.backward()
                 opti.step()
-        # print(">>> average loss: {}".format(avg_loss/batches/episode))
+                avg_loss += loss.detach().cpu().numpy()
+        print(">>> average loss: {}".format(avg_loss/batches/episode))
 
     def final(self, state):
         "Called at the end of each game."
