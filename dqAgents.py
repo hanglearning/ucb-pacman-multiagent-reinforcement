@@ -74,7 +74,8 @@ class PacmanDQAgent(DQAgent):
         feature = self.getFeature(state, action)
         target = reward + self.discount * self.computeValueFromQValues(nextState)
         self.store_trajectory(feature, target)
-        self.replay()
+        if self.episodesSoFar < self.numTraining:
+            self.replay()
     
     def store_trajectory(self, feature, target):
         self.replay_buffer.append((feature, target))
