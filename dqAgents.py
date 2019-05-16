@@ -1,3 +1,4 @@
+import os
 import util
 import numpy as np
 
@@ -15,7 +16,10 @@ class DQAgent(ReinforcementAgent):
 
 class PacmanDQAgent(DQAgent):
     def __init__(self, extractor='ComplexExtractor', **args):
-        self.dqnet = DQN(n_features=8)
+        if os.path.exists("model_param/dqn.pt"):
+            self.dqnet = torch.load("model_param/dqn.pt")
+        else:
+            self.dqnet = DQN(n_features=8)
         self.dqnet.cuda()
         self.feat_extractor = util.lookup(extractor, globals())()
         self.action_mapping = {'North':0, 'South':1, 'East':2, 'West':3, 'Stop':4}
@@ -76,17 +80,19 @@ class PacmanDQAgent(DQAgent):
         self.store_trajectory(feature, target)
         if self.episodesSoFar < self.numTraining:
             self.replay()
+        else:
+            self.dqnet.eval()
     
     def store_trajectory(self, feature, target):
         self.replay_buffer.append((feature, target))
     
     def replay(self):
         n_samples = len(self.replay_buffer)
-        x = np.array([pairs[0] for pairs in self.replay_buffer[-min(10000, n_samples):]]).astype(np.float32)
-        y = np.array([pairs[1] for pairs in self.replay_buffer[-min(10000, n_samples):]]).astype(np.float32)[:,np.newaxis]
+        x = np.array([pairs[0] for pairs in self.replay_buffer[-min(5000, n_samples):]]).astype(np.float32)
+        y = np.array([pairs[1] for pairs in self.replay_buffer[-min(5000, n_samples):]]).astype(np.float32)[:,np.newaxis]
         self.train(x, y)
     
-    def train(self, x, y, lr=1e-2, batch_size=20, episode=10):
+    def train(self, x, y, lr=1e-2, batch_size=32, episode=10):
         opti = optim.Adam(self.dqnet.parameters(), lr=lr)
         n_samples = x.shape[0]
         if n_samples < 1:
@@ -105,10 +111,6 @@ class PacmanDQAgent(DQAgent):
                 batch_y = y[start_index:end_index]
                 outp = self.dqnet(batch_x)
                 loss = self.dqnet.criterion(outp, torch.from_numpy(batch_y).cuda())
-                # print(loss.detach().numpy())
-                # print("-----")
-                # print("grad: {}".format(self.dqnet.fc1.weight.detach().cpu().numpy()))
-                # print("-----")
                 opti.zero_grad()
                 loss.backward()
                 opti.step()
@@ -124,4 +126,5 @@ class PacmanDQAgent(DQAgent):
         if self.episodesSoFar == self.numTraining:
             # you might want to print your weights here for debugging
             "*** YOUR CODE HERE ***"
-            # print(self.weights)
+            torch.save(self.dqnet, "model_param/dqn.pt")
+            print("DQN model saved at 'model_param/dqn.pt'")
