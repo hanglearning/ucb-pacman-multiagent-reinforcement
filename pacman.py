@@ -87,7 +87,7 @@ class GameState:
         return tmp
     getAndResetExplored = staticmethod(getAndResetExplored)
 
-    def getLegalActions(self, agentIndex=0):
+    def getLegalActions(self, total_pacmen, agentIndex):
         """
         Returns the legal actions for the agent specified.
         """
@@ -95,12 +95,12 @@ class GameState:
         if self.isWin() or self.isLose():
             return []
 
-        if agentIndex == 0:  # Pacman is moving
-            return PacmanRules.getLegalActions(self)
+        if agentIndex < total_pacmen:  # Pacman is moving
+            return PacmanRules.getLegalActions(self, agentIndex)
         else:
-            return GhostRules.getLegalActions(self, agentIndex)
+            return GhostRules.getLegalActions(self, agentIndex, total_pacmen)
 
-    def generateSuccessor(self, agentIndex, action):
+    def generateSuccessor(self, agentIndex, action, total_pacmen):
         """
         Returns the successor state after the specified agent takes the action.
         """
@@ -112,20 +112,20 @@ class GameState:
         state = GameState(self)
 
         # Let agent's logic deal with its action's effects on the board
-        if agentIndex == 0:  # Pacman is moving
+        if agentIndex < total_pacmen:  # Pacman is moving
             state.data._eaten = [False for i in range(state.getNumAgents())]
-            PacmanRules.applyAction(state, action)
+            PacmanRules.applyAction(state, action, agentIndex)
         else:                # A ghost is moving
-            GhostRules.applyAction(state, action, agentIndex)
+            GhostRules.applyAction(state, action, agentIndex, total_pacmen)
 
         # Time passes
-        if agentIndex == 0:
+        if agentIndex < total_pacmen:
             state.data.scoreChange += -TIME_PENALTY  # Penalty for waiting around
         else:
             GhostRules.decrementTimer(state.data.agentStates[agentIndex])
 
         # Resolve multi-agent effects
-        GhostRules.checkDeath(state, agentIndex)
+        GhostRules.checkDeath(state, agentIndex, total_pacmen)
 
         # Book keeping
         state.data._agentMoved = agentIndex
@@ -143,33 +143,33 @@ class GameState:
         """
         return self.generateSuccessor(0, action)
 
-    def getPacmanState(self):
+    def getPacmanState(self, agentIndex):
         """
         Returns an AgentState object for pacman (in game.py)
 
         state.pos gives the current position
         state.direction gives the travel vector
         """
-        return self.data.agentStates[0].copy()
+        return self.data.agentStates[agentIndex].copy()
 
-    def getPacmanPosition(self):
-        return self.data.agentStates[0].getPosition()
+    def getPacmanPosition(self, agentIndex):
+        return self.data.agentStates[agentIndex].getPosition()
 
-    def getGhostStates(self):
-        return self.data.agentStates[1:]
+    def getGhostStates(self, total_pacmen):
+        return self.data.agentStates[total_pacmen:]
 
-    def getGhostState(self, agentIndex):
-        if agentIndex == 0 or agentIndex >= self.getNumAgents():
+    def getGhostState(self, agentIndex, total_pacmen):
+        if agentIndex < total_pacmen or agentIndex >= self.getNumAgents():
             raise Exception("Invalid index passed to getGhostState")
         return self.data.agentStates[agentIndex]
 
     def getGhostPosition(self, agentIndex):
-        if agentIndex == 0:
+        if agentIndex < total_pacmen:
             raise Exception("Pacman's index passed to getGhostPosition")
         return self.data.agentStates[agentIndex].getPosition()
 
-    def getGhostPositions(self):
-        return [s.getPosition() for s in self.getGhostStates()]
+    def getGhostPositions(self, total_pacmen):
+        return [s.getPosition() for s in self.getGhostStates(total_pacmen)]
 
     def getNumAgents(self):
         return len(self.data.agentStates)
@@ -285,7 +285,7 @@ class ClassicGameRules:
         self.timeout = timeout
 
     def newGame(self, layout, pacmanAgent, ghostAgents, display, quiet=False, catchExceptions=False):
-        agents = [pacmanAgent] + ghostAgents[:layout.getNumGhosts()]
+        agents = pacmanAgent + ghostAgents[:layout.getNumGhosts()]
         initState = GameState()
         initState.initialize(layout, len(ghostAgents))
         game = Game(agents, display, self, catchExceptions=catchExceptions)
@@ -317,7 +317,7 @@ class ClassicGameRules:
         return float(game.state.getNumFood()) / self.initialState.getNumFood()
 
     def agentCrash(self, game, agentIndex):
-        if agentIndex == 0:
+        if agentIndex < total_pacmen:
             print("Pacman crashed")
         else:
             print("A ghost crashed")
@@ -345,22 +345,22 @@ class PacmanRules:
     """
     PACMAN_SPEED = 1
 
-    def getLegalActions(state):
+    def getLegalActions(state, agentIndex):
         """
         Returns a list of possible actions.
         """
-        return Actions.getPossibleActions(state.getPacmanState().configuration, state.data.layout.walls)
+        return Actions.getPossibleActions(state.getPacmanState(agentIndex).configuration, state.data.layout.walls)
     getLegalActions = staticmethod(getLegalActions)
 
-    def applyAction(state, action):
+    def applyAction(state, action, agentIndex):
         """
         Edits the state to reflect the results of the action.
         """
-        legal = PacmanRules.getLegalActions(state)
+        legal = PacmanRules.getLegalActions(state, agentIndex)
         if action not in legal:
             raise Exception("Illegal action " + str(action))
 
-        pacmanState = state.data.agentStates[0]
+        pacmanState = state.data.agentStates[agentIndex]
 
         # Update Configuration
         vector = Actions.directionToVector(action, PacmanRules.PACMAN_SPEED)
@@ -405,12 +405,12 @@ class GhostRules:
     """
     GHOST_SPEED = 1.0
 
-    def getLegalActions(state, ghostIndex):
+    def getLegalActions(state, ghostIndex, total_pacmen):
         """
         Ghosts cannot stop, and cannot turn around unless they
         reach a dead end, but can turn 90 degrees at intersections.
         """
-        conf = state.getGhostState(ghostIndex).configuration
+        conf = state.getGhostState(ghostIndex, total_pacmen).configuration
         possibleActions = Actions.getPossibleActions(
             conf, state.data.layout.walls)
         reverse = Actions.reverseDirection(conf.direction)
@@ -421,9 +421,9 @@ class GhostRules:
         return possibleActions
     getLegalActions = staticmethod(getLegalActions)
 
-    def applyAction(state, action, ghostIndex):
+    def applyAction(state, action, ghostIndex, total_pacmen):
 
-        legal = GhostRules.getLegalActions(state, ghostIndex)
+        legal = GhostRules.getLegalActions(state, ghostIndex, total_pacmen)
         if action not in legal:
             raise Exception("Illegal ghost action " + str(action))
 
@@ -444,19 +444,23 @@ class GhostRules:
         ghostState.scaredTimer = max(0, timer - 1)
     decrementTimer = staticmethod(decrementTimer)
 
-    def checkDeath(state, agentIndex):
-        pacmanPosition = state.getPacmanPosition()
-        if agentIndex == 0:  # Pacman just moved; Anyone can kill him
-            for index in range(1, len(state.data.agentStates)):
+    def checkDeath(state, agentIndex, total_pacmen):
+        pacmanPositions = []
+        for pacmanIndex in range(total_pacmen):
+            pacmanPositions.append(state.getPacmanPosition(pacmanIndex))
+        if agentIndex < total_pacmen:  # Pacman just moved; Anyone can kill him
+            for index in range(total_pacmen, len(state.data.agentStates)):
                 ghostState = state.data.agentStates[index]
                 ghostPosition = ghostState.configuration.getPosition()
-                if GhostRules.canKill(pacmanPosition, ghostPosition):
-                    GhostRules.collide(state, ghostState, index)
+                for pacmanPosition in pacmanPositions:
+                    if GhostRules.canKill(pacmanPosition, ghostPosition):
+                        GhostRules.collide(state, ghostState, index)
         else:
             ghostState = state.data.agentStates[agentIndex]
             ghostPosition = ghostState.configuration.getPosition()
-            if GhostRules.canKill(pacmanPosition, ghostPosition):
-                GhostRules.collide(state, ghostState, agentIndex)
+            for pacmanPosition in pacmanPositions:
+                if GhostRules.canKill(pacmanPosition, ghostPosition):
+                    GhostRules.collide(state, ghostState, agentIndex)
     checkDeath = staticmethod(checkDeath)
 
     def collide(state, ghostState, agentIndex):
@@ -526,8 +530,11 @@ def readCommand(argv):
                       metavar='LAYOUT_FILE', default='mediumClassic')
     parser.add_option('-p', '--pacman', dest='pacman',
                       help=default(
-                          'the agent TYPE in the pacmanAgents module to use'),
+                          'the agent TYPE in the pacmanAgents module to use; separate by comma for multi Pacmen purpose'),
                       metavar='TYPE', default='KeyboardAgent')
+    parser.add_option('--pacmanAmounts', dest='pacman_amounts',
+                      help=default(
+                          'set the amount of Pacmen for each type specified'))
     parser.add_option('-t', '--textGraphics', action='store_true', dest='textGraphics',
                       help='Display output as text only', default=False)
     parser.add_option('-q', '--quietTextGraphics', action='store_true', dest='quietGraphics',
@@ -574,22 +581,53 @@ def readCommand(argv):
     if options.fixRandomSeed:
         random.seed('cs188')
 
-    # Choose a layout
-    args['layout'] = layout.getLayout(options.layout)
-    if args['layout'] == None:
-        raise Exception("The layout " + options.layout + " cannot be found")
 
     # Choose a Pacman agent
     noKeyboard = options.gameToReplay == None and (
         options.textGraphics or options.quietGraphics)
-    pacmanType = loadAgent(options.pacman, noKeyboard)
     agentOpts = parseAgentArgs(options.agentArgs)
     if options.numTraining > 0:
         args['numTraining'] = options.numTraining
         if 'numTraining' not in agentOpts:
             agentOpts['numTraining'] = options.numTraining
-    pacman = pacmanType(**agentOpts)  # Instantiate Pacman with agentArgs
-    args['pacman'] = pacman
+    
+    pacman_types = options.pacman.split(",")
+    pacman_amounts = options.pacman_amounts.split(",")
+    # to assign different colors for different Pacman type
+    total_pacmen_types = len(pacman_types)
+    total_pacmen = 0
+    # create pacmen
+    args['pacman'] = []
+    pacmen_iter = 0
+    pacmen_type_start_index = 0
+    # for pacman_amount in pacman_amounts:
+    #     total_pacmen += int(pacman_amount)
+    #     pacmanType = loadAgent(pacman_types[pacmen_iter], noKeyboard)
+    #     pacmen = pacmanType(int(pacman_amount), pacman_types[pacmen_iter], pacmen_type_start_index, **agentOpts)  # Instantiate Pacman with agentArgs
+    #     args['pacman'] += pacmen
+    #     pacmen_type_start_index += int(pacman_amount)
+    
+    for pacman_type in pacman_types:
+        try:
+            pacmen_type_amount = int(pacman_amounts[pacmen_iter])
+        except:
+            pacmen_type_amount = 1
+        total_pacmen += pacmen_type_amount
+        pacmanType = loadAgent(pacman_type, noKeyboard)
+        pacmen = pacmanType(pacmen_type_amount, pacman_type, pacmen_type_start_index, **agentOpts)  # Instantiate Pacman with agentArgs
+        args['pacman'] += pacmen
+        pacmen_type_start_index += pacmen_type_amount
+        pacmen_iter += 1
+    
+    # pacmanType = loadAgent(options.pacman, noKeyboard)
+    # pacman = pacmanType(num_pacmen, options.pacman, **agentOpts)  # Instantiate Pacman with agentArgs
+    # args['pacman'] = pacman
+    args['total_pacmen'] = total_pacmen
+
+    # Choose and process a layout for enough pacmen
+    args['layout'] = layout.getLayout(options.layout, total_pacmen)
+    if args['layout'] == None:
+        raise Exception("The layout " + options.layout + " cannot be found")
 
     # Don't display training games
     if 'numTrain' in agentOpts:
@@ -598,7 +636,7 @@ def readCommand(argv):
 
     # Choose a ghost agent
     ghostType = loadAgent(options.ghost, noKeyboard)
-    args['ghosts'] = [ghostType(i+1) for i in range(options.numGhosts)]
+    args['ghosts'] = [ghostType(i) for i in range(total_pacmen, total_pacmen + options.numGhosts)]
 
     # Choose a display format
     if options.quietGraphics:
@@ -659,6 +697,9 @@ def loadAgent(pacman, nographics):
                 if nographics and modulename == 'keyboardAgents.py':
                     raise Exception(
                         'Using the keyboard requires graphics (not text display)')
+                # Hang - The original code creates ghost also by calling it a pacman here
+                if not pacman.endswith("Ghost"):
+                    pacman = "create" + pacman
                 return getattr(module, pacman)
     raise Exception('The agent ' + pacman +
                     ' is not specified in any *Agents.py.')
@@ -685,7 +726,7 @@ def replayGame(layout, actions, display):
     display.finish()
 
 
-def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, catchExceptions=False, timeout=30, graphics=False, graphicsUpdateFrequency=None):
+def runGames(layout, pacman, ghosts, display, numGames, record, total_pacmen, numTraining=0, catchExceptions=False, timeout=30, graphics=False, graphicsUpdateFrequency=None):
     import __main__
     __main__.__dict__['_display'] = display
 
@@ -734,7 +775,7 @@ def runGames(layout, pacman, ghosts, display, numGames, record, numTraining=0, c
         
         game = rules.newGame(layout, pacman, ghosts,
                              gameDisplay, beQuiet, catchExceptions)
-        game.run()
+        game.run(total_pacmen)
                 
         if not beQuiet:
             games.append(game)

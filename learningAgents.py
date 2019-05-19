@@ -113,15 +113,15 @@ class ReinforcementAgent(ValueEstimationAgent):
     #    Read These Functions          #
     ####################################
 
-    def getLegalActions(self,state):
+    def getLegalActions(self,state, total_pacmen, agentIndex):
         """
           Get the actions available for a given
           state. This is what you should use to
           obtain legal actions for a state
         """
-        return self.actionFn(state)
+        return self.actionFn(state, total_pacmen, agentIndex)
 
-    def observeTransition(self, state,action,nextState,deltaReward):
+    def observeTransition(self, state,action,nextState,deltaReward, total_pacmen, agentIndex):
         """
             Called by environment to inform agent that a transition has
             been observed. This will result in a call to self.update
@@ -130,7 +130,7 @@ class ReinforcementAgent(ValueEstimationAgent):
             NOTE: Do *not* override or call this function
         """
         self.episodeRewards += deltaReward
-        self.update(state,action,nextState,deltaReward)
+        self.update(state,action,nextState,deltaReward, total_pacmen, agentIndex)
 
     def startEpisode(self):
         """
@@ -170,7 +170,7 @@ class ReinforcementAgent(ValueEstimationAgent):
         numTraining - number of training episodes, i.e. no learning after these many episodes
         """
         if actionFn == None:
-            actionFn = lambda state: state.getLegalActions()
+            actionFn = lambda state, total_pacmen, agentIndex: state.getLegalActions(total_pacmen, agentIndex)
         self.actionFn = actionFn
         self.episodesSoFar = 0
         self.accumTrainRewards = 0.0
@@ -203,27 +203,27 @@ class ReinforcementAgent(ValueEstimationAgent):
     ###################
     # Pacman Specific #
     ###################
-    def observationFunction(self, state):
+    def observationFunction(self, state, total_pacmen, agentIndex):
         """
             This is where we ended up after our last action.
             The simulation should somehow ensure this is called
         """
         if not self.lastState is None:
             reward = state.getScore() - self.lastState.getScore()
-            self.observeTransition(self.lastState, self.lastAction, state, reward)
+            self.observeTransition(self.lastState, self.lastAction, state, reward, total_pacmen, agentIndex)
         return state
 
-    def registerInitialState(self, state):
+    def registerInitialState(self, state, i, agentType):
         self.startEpisode()
         if self.episodesSoFar == 0:
-            print('Beginning %d episodes of Training' % (self.numTraining))
+            print('Beginning %d episodes of Training on %s agent index %d' % (self.numTraining, agentType, i+1))
 
-    def final(self, state):
+    def final(self, state, total_pacmen, agentIndex):
         """
           Called by Pacman game at the terminal state
         """
         deltaReward = state.getScore() - self.lastState.getScore()
-        self.observeTransition(self.lastState, self.lastAction, state, deltaReward)
+        self.observeTransition(self.lastState, self.lastAction, state, deltaReward, total_pacmen, agentIndex)
         self.stopEpisode()
 
         # Make sure we have this var

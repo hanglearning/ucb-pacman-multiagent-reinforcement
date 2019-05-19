@@ -24,8 +24,8 @@ class GhostAgent(Agent):
     def __init__(self, index):
         self.index = index
 
-    def getAction(self, state):
-        dist = self.getDistribution(state)
+    def getAction(self, state, total_pacmen, agentIndex):
+        dist = self.getDistribution(state, total_pacmen)
         if len(dist) == 0:
             return Directions.STOP
         else:
@@ -39,9 +39,9 @@ class GhostAgent(Agent):
 class RandomGhost(GhostAgent):
     "A ghost that chooses a legal action uniformly at random."
 
-    def getDistribution(self, state):
+    def getDistribution(self, state, total_pacmen):
         dist = util.Counter()
-        for a in state.getLegalActions(self.index):
+        for a in state.getLegalActions(total_pacmen, self.index):
             dist[a] = 1.0
         dist.normalize()
         return dist

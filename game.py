@@ -328,6 +328,8 @@ class Actions:
             return Directions.WEST
         if action == Directions.WEST:
             return Directions.EAST
+        if action == None:
+            print("332")
         return action
     reverseDirection = staticmethod(reverseDirection)
 
@@ -601,11 +603,11 @@ class Game:
         sys.stdout = OLD_STDOUT
         sys.stderr = OLD_STDERR
 
-    def run(self):
+    def run(self, total_pacmen):
         """
         Main control loop for game play.
         """
-        self.display.initialize(self.state.data)
+        self.display.initialize(self.state.data, total_pacmen)
         self.numMoves = 0
 
         # self.display.initialize(self.state.makeObservation(1).data)
@@ -643,7 +645,7 @@ class Game:
                         self.unmute()
                         return
                 else:
-                    agent.registerInitialState(self.state.deepCopy())
+                    agent.registerInitialState(self.state.deepCopy(), i, type(agent).__name__)
                 # TODO: could this exceed the total time
                 self.unmute()
 
@@ -675,7 +677,7 @@ class Game:
                         return
                 else:
                     observation = agent.observationFunction(
-                        self.state.deepCopy())
+                        self.state.deepCopy(), total_pacmen, agentIndex)
                 self.unmute()
             else:
                 observation = self.state.deepCopy()
@@ -692,6 +694,8 @@ class Game:
                         if skip_action:
                             raise TimeoutFunctionException()
                         action = timed_func(observation)
+                        if action == None:
+                            print("698")
                     except TimeoutFunctionException:
                         print("Agent %d timed out on a single move!" %
                               agentIndex, file=sys.stderr)
@@ -729,7 +733,9 @@ class Game:
                     self.unmute()
                     return
             else:
-                action = agent.getAction(observation)
+                action = agent.getAction(observation, total_pacmen, agentIndex)
+                if action == None:
+                    print("738")
             self.unmute()
 
             # Execute the action
@@ -744,10 +750,10 @@ class Game:
                     self.unmute()
                     return
             else:
-                self.state = self.state.generateSuccessor(agentIndex, action)
+                self.state = self.state.generateSuccessor(agentIndex, action, total_pacmen)
 
             # Change the display
-            self.display.update(self.state.data)
+            self.display.update(self.state.data, total_pacmen)
             ###idx = agentIndex - agentIndex % 2 + 1
             ###self.display.update( self.state.makeObservation(idx).data )
 
@@ -767,7 +773,7 @@ class Game:
             if "final" in dir(agent):
                 try:
                     self.mute(agentIndex)
-                    agent.final(self.state)
+                    agent.final(self.state, total_pacmen, agentIndex)
                     self.unmute()
                 except Exception as data:
                     if not self.catchExceptions:

@@ -118,20 +118,20 @@ class SimpleExtractor(FeatureExtractor):
         return features
 
 class ComplexExtractor(FeatureExtractor):
-    def getFeatures(self, state, action):
+    def getFeatures(self, state, action, agentIndex, total_pacmen):
         # extract the grid of food and wall locations and get the ghost locations
         food = state.getFood()
         capsule = state.getCapsules()
         walls = state.getWalls()
-        ghosts = state.getGhostPositions()
-        ghosts_state = state.getGhostStates()
+        ghosts = state.getGhostPositions(total_pacmen)
+        ghosts_state = state.getGhostStates(total_pacmen)
 
         features = util.Counter()
 
         # features["bias"] = 10.0
 
         # compute the location of pacman after he takes the action
-        x, y = state.getPacmanPosition()
+        x, y = state.getPacmanPosition(agentIndex)
         dx, dy = Actions.directionToVector(action)
         next_x, next_y = int(x + dx), int(y + dy)
 
