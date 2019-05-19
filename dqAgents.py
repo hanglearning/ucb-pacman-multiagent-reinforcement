@@ -88,8 +88,8 @@ class PacmanDQAgent(DQAgent):
     
     def replay(self):
         n_samples = len(self.replay_buffer)
-        x = np.array([pairs[0] for pairs in self.replay_buffer[-min(5000, n_samples):]]).astype(np.float32)
-        y = np.array([pairs[1] for pairs in self.replay_buffer[-min(5000, n_samples):]]).astype(np.float32)[:,np.newaxis]
+        x = np.array([pairs[0] for pairs in self.replay_buffer[-min(1000, n_samples):]]).astype(np.float32)
+        y = np.array([pairs[1] for pairs in self.replay_buffer[-min(1000, n_samples):]]).astype(np.float32)[:,np.newaxis]
         self.train(x, y)
     
     def train(self, x, y, lr=1e-2, batch_size=32, episode=10):
@@ -108,7 +108,7 @@ class PacmanDQAgent(DQAgent):
                 start_index = i*batch_size
                 end_index = min(start_index+batch_size, n_samples)
                 batch_x = torch.from_numpy(x[start_index:end_index]).cuda()
-                batch_y = y[start_index:end_index]
+                batch_y = y[start_index:end_index] / 10     # ...
                 outp = self.dqnet(batch_x)
                 loss = self.dqnet.criterion(outp, torch.from_numpy(batch_y).cuda())
                 opti.zero_grad()
