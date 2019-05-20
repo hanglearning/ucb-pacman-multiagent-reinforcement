@@ -333,6 +333,8 @@ def getUserAction(state, actionFunction):
     actions = actionFunction(state)
     if action not in actions:
         action = actions[0]
+    if action == None:
+        print("337")
     return action
 
 def printString(x): print(x)

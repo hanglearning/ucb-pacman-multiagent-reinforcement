@@ -137,27 +137,66 @@ class Layout:
             self.numGhosts += 1
 
 
-def getLayout(name, back=2):
+def getLayout(name, total_pacmen, back=2):
     if name.endswith('.lay'):
-        layout = tryToLoad('layouts/' + name)
+        layout = tryToLoad('layouts/' + name, total_pacmen, name)
         if layout == None:
-            layout = tryToLoad(name)
+            layout = tryToLoad(name, total_pacmen, name)
     else:
-        layout = tryToLoad('layouts/' + name + '.lay')
+        layout = tryToLoad('layouts/' + name + '.lay', total_pacmen, name)
         if layout == None:
-            layout = tryToLoad(name + '.lay')
+            layout = tryToLoad(name + '.lay', total_pacmen, name)
     if layout == None and back >= 0:
         curdir = os.path.abspath('.')
         os.chdir('..')
-        layout = getLayout(name, back - 1)
+        layout = getLayout(name, total_pacmen, back - 1)
         os.chdir(curdir)
     return layout
 
-
-def tryToLoad(fullname):
+# process layout only after specified layout is found
+def tryToLoad(fullname, total_pacmen, filename):
     if(not os.path.exists(fullname)):
         return None
-    f = open(fullname)
+    f = open(fullname)    
+    entire_layout = list(f.read())
+    # layout_lines = entire_layout.count('\n')
+    total_pacmen_positions_provided = entire_layout.count('P')
+    if total_pacmen == total_pacmen_positions_provided:
+        # no need to process the layout
+        pass
+    else:
+        total_possible_pacmen = entire_layout.count('.') + entire_layout.count('P')
+        if total_pacmen > int(total_possible_pacmen/3):
+            import sys
+            sys.exit(f"Too many pacmen are specified while this layout can maximally accpet {int(total_possible_pacmen/3)}.")
+        else:
+            # process the layout with the specified number of pacmen
+            if total_pacmen < entire_layout.count('P'):
+                extra_positions = entire_layout.count('P') - total_pacmen
+                # replace extra Ps with food dot .
+                # Reference https://stackoverflow.com/questions/2294493/how-to-get-the-position-of-a-character-in-python
+                P_positions = [pos for pos, char in enumerate(entire_layout) if char == 'P']
+                for i in range(extra_positions):
+                    to_be_removed = random.choice(P_positions)
+                    entire_layout[to_be_removed] = '.'
+            else:
+                # replace some food dots with extra needed pacmen
+                extra_positions = total_pacmen - entire_layout.count('P')
+                dot_positions = [pos for pos, char in enumerate(entire_layout) if char == '.']
+                for i in range(extra_positions):
+                    to_be_removed = random.choice(dot_positions)
+                    # 'str' object does not support item assignment https://stackoverflow.com/questions/1228299/change-one-character-in-a-string
+                    entire_layout[to_be_removed] = 'P'
+            # create the new layout file
+            # Reference https://stackoverflow.com/questions/273192/how-can-i-safely-create-a-nested-directory-in-python
+            os.makedirs("layouts/Multi_Pacmen_Layouts", exist_ok=True)
+            # Reference https://stackoverflow.com/questions/10607688/how-to-create-a-file-name-with-the-current-date-time-in-python
+            import datetime
+            new_filename = datetime.datetime.now().strftime(f"{filename}_%Y%m%d-%H%M%S")
+            with open(f"layouts/Multi_Pacmen_Layouts/{new_filename}", "w") as new_layout:
+                new_layout.write("".join(entire_layout))
+            f.close()
+            f = open(f"layouts/Multi_Pacmen_Layouts/{new_filename}")
     try:
         return Layout([line.strip() for line in f])
     finally:

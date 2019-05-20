@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": ["-p", "ApproximateQAgent", "-x", "30", "-n", "30", "-l", "smallGrid", "--graphics", "--graphicsUpdateFrequency", "3"]
+            "args": ["-p", "ApproximateSarsaAgent", "-x", "30", "-n", "30", "-l", "PowerClassic", "--graphics", "--graphicsUpdateFrequency", "3", "--pacmanAmounts", "2,2,5"]
             //"args": ["-p", "ApproximateQAgent", "-x", "2000", "-n", "2113", "-l", "smallGrid", "--graphics", "--graphicsUpdateFrequency", "10"]
         }
     ]

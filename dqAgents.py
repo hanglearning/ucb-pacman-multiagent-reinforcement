@@ -10,6 +10,9 @@ from featureExtractors import *
 import torch
 import torch.optim as optim
 
+def createDQAgent(num_pacmen, agent, start_index, **args):
+    return [eval(agent)(index=i, **args) for i in range(start_index, start_index + num_pacmen)]
+
 class DQAgent(ReinforcementAgent):
     def __init__(self, **args):
         ReinforcementAgent.__init__(self, **args)
@@ -43,8 +46,8 @@ class PacmanDQAgent(DQAgent):
             return 0.
         return max([self.getQValue(state, action) for action in legalActions])
     
-    def computeActionFromQValues(self, state):
-        legalActions = self.getLegalActions(state)
+    def computeActionFromQValues(self, state, total_pacmen, agentIndex):
+        legalActions = self.getLegalActions(state, total_pacmen, agentIndex)
         action = None
         if legalActions is None or len(legalActions) == 0:
             return action
@@ -56,25 +59,25 @@ class PacmanDQAgent(DQAgent):
                 maxQ = q
         return action
     
-    def getAction(self, state):
-        legalActions = self.getLegalActions(state)
+    def getAction(self, state, total_pacmen, agentIndex):
+        legalActions = self.getLegalActions(state, total_pacmen, agentIndex)
         action = None
         if legalActions is None or len(legalActions) == 0:
             return action
         if util.flipCoin(self.epsilon):
             action = random.choice(legalActions)
         else:
-            action = self.getPolicy(state)
+            action = self.getPolicy(state, total_pacmen, agentIndex)
         self.doAction(state, action)
         return action
     
-    def getPolicy(self, state):
-        return self.computeActionFromQValues(state)
+    def getPolicy(self, state, total_pacmen, agentIndex):
+        return self.computeActionFromQValues(state, total_pacmen, agentIndex)
     
     def getValue(self, state):
         return self.computeValueFromQValues(state)
     
-    def update(self, state, action, nextState, reward):
+    def update(self, state, action, nextState, reward, total_pacmen, agentIndex):
         feature = self.getFeature(state, action)
         target = reward + self.discount * self.computeValueFromQValues(nextState)
         self.store_trajectory(feature, target)
@@ -117,10 +120,10 @@ class PacmanDQAgent(DQAgent):
                 avg_loss += loss.detach().cpu().numpy()
         print(">>> average loss: {}".format(avg_loss/batches/episode))
 
-    def final(self, state):
+    def final(self, state, total_pacmen, agentIndex):
         "Called at the end of each game."
         # call the super-class final method
-        DQAgent.final(self, state)
+        DQAgent.final(self, state, total_pacmen, agentIndex)
 
         # did we finish training?
         if self.episodesSoFar == self.numTraining:

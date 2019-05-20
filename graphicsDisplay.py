@@ -173,14 +173,14 @@ class PacmanGraphics:
     def checkNullDisplay(self):
         return False
 
-    def initialize(self, state, isBlue=False):
+    def initialize(self, state, total_pacmen, isBlue=False):
         self.isBlue = isBlue
         self.startGraphics(state)
 
         # self.drawDistributions(state)
         self.distributionImages = None  # Initialized lazily
         self.drawStaticObjects(state)
-        self.drawAgentObjects(state)
+        self.drawAgentObjects(state, total_pacmen)
 
         # Information
         self.previousState = state
@@ -216,14 +216,14 @@ class PacmanGraphics:
         self.capsules = self.drawCapsules(layout.capsules)
         refresh()
 
-    def drawAgentObjects(self, state):
+    def drawAgentObjects(self, state, total_pacmen):
         self.agentImages = []  # (agentState, image)
         for index, agent in enumerate(state.agentStates):
             if agent.isPacman:
                 image = self.drawPacman(agent, index)
                 self.agentImages.append((agent, image))
             else:
-                image = self.drawGhost(agent, index)
+                image = self.drawGhost(agent, index, total_pacmen)
                 self.agentImages.append((agent, image))
         refresh()
 
@@ -242,7 +242,7 @@ class PacmanGraphics:
             self.agentImages[agentIndex] = (newState, image)
         refresh()
 
-    def update(self, newState):
+    def update(self, newState, total_pacmen):
         agentIndex = newState._agentMoved
         agentState = newState.agentStates[agentIndex]
 
@@ -252,7 +252,7 @@ class PacmanGraphics:
         if agentState.isPacman:
             self.animatePacman(agentState, prevState, prevImage)
         else:
-            self.moveGhost(agentState, agentIndex, prevState, prevImage)
+            self.moveGhost(agentState, agentIndex, prevState, prevImage, total_pacmen)
         self.agentImages[agentIndex] = (agentState, prevImage)
 
         if newState._foodEaten != None:
@@ -272,7 +272,9 @@ class PacmanGraphics:
         begin_graphics(screen_width,
                        screen_height,
                        BACKGROUND_COLOR,
-                       "CS188 Pacman")
+                       "Ruiqi & Hang's Multiagent Pacmen")
+
+    # def get_pacman_color_by_type(pacman):
 
     def drawPacman(self, pacman, index):
         position = self.getPosition(pacman)
@@ -338,13 +340,13 @@ class PacmanGraphics:
                             self.getDirection(pacman), image)
         refresh()
 
-    def getGhostColor(self, ghost, ghostIndex):
+    def getGhostColor(self, ghost, ghostIndex, total_pacmen):
         if ghost.scaredTimer > 0:
             return SCARED_COLOR
         else:
-            return GHOST_COLORS[ghostIndex]
+            return GHOST_COLORS[ghostIndex - total_pacmen]
 
-    def drawGhost(self, ghost, agentIndex):
+    def drawGhost(self, ghost, agentIndex, total_pacmen):
         pos = self.getPosition(ghost)
         dir = self.getDirection(ghost)
         (screen_x, screen_y) = (self.to_screen(pos))
@@ -353,7 +355,7 @@ class PacmanGraphics:
             coords.append((x*self.gridSize*GHOST_SIZE + screen_x,
                            y*self.gridSize*GHOST_SIZE + screen_y))
 
-        colour = self.getGhostColor(ghost, agentIndex)
+        colour = self.getGhostColor(ghost, agentIndex, total_pacmen)
         body = polygon(coords, colour, filled=1)
         WHITE = formatColor(1.0, 1.0, 1.0)
         BLACK = formatColor(0.0, 0.0, 0.0)
@@ -406,7 +408,7 @@ class PacmanGraphics:
         moveCircle(eyes[3], (screen_x+self.gridSize*GHOST_SIZE*(0.3+dx), screen_y -
                              self.gridSize*GHOST_SIZE*(0.3-dy)), self.gridSize*GHOST_SIZE*0.08)
 
-    def moveGhost(self, ghost, ghostIndex, prevGhost, ghostImageParts):
+    def moveGhost(self, ghost, ghostIndex, prevGhost, ghostImageParts, total_pacmen):
         old_x, old_y = self.to_screen(self.getPosition(prevGhost))
         new_x, new_y = self.to_screen(self.getPosition(ghost))
         delta = new_x - old_x, new_y - old_y
@@ -418,7 +420,7 @@ class PacmanGraphics:
         if ghost.scaredTimer > 0:
             color = SCARED_COLOR
         else:
-            color = GHOST_COLORS[ghostIndex]
+            color = GHOST_COLORS[ghostIndex - total_pacmen]
         edit(ghostImageParts[0], ('fill', color), ('outline', color))
         self.moveEyes(self.getPosition(ghost),
                       self.getDirection(ghost), ghostImageParts[-4:])

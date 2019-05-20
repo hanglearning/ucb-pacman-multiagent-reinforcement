@@ -28,7 +28,7 @@ class NullGraphics:
     def initialize(self, state, isBlue=False):
         pass
 
-    def update(self, state):
+    def update(self, state, total_pacmen):
         pass
 
     def checkNullDisplay(self):
