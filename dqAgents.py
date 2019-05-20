@@ -26,6 +26,8 @@ class PacmanDQAgent(DQAgent):
             self.dqnet = DQN(n_features=8)
         if torch.cuda.is_available():
             self.dqnet.cuda()
+        self.opti = optim.Adam(self.dqnet.parameters(), lr=.001)
+        self.scheduler = optim.lr_scheduler.StepLR(self.opti, 10000, gamma=.1)
         self.feat_extractor = util.lookup(extractor, globals())()
         self.action_mapping = {'North':0, 'South':1, 'East':2, 'West':3, 'Stop':4}
         self.replay_buffer = []
@@ -100,8 +102,9 @@ class PacmanDQAgent(DQAgent):
         y = np.array([pairs[1] for pairs in self.replay_buffer[-min(1000, n_samples):]]).astype(np.float32)[:,np.newaxis]
         self.train(x, y)
     
-    def train(self, x, y, lr=1e-2, batch_size=32, episode=10):
-        opti = optim.Adam(self.dqnet.parameters(), lr=lr)
+    def train(self, x, y):
+        batch_size = 32
+        epochs = 10
         n_samples = x.shape[0]
         if n_samples < 1:
             return
@@ -110,7 +113,7 @@ class PacmanDQAgent(DQAgent):
         batches = math.ceil(1.*n_samples/batch_size)
         random_index = np.arange(n_samples)
         avg_loss = 0.
-        for ep in range(episode):
+        for _ in range(epochs):
             np.random.shuffle(random_index)
             for i in range(int(batches)):
                 start_index = i*batch_size
@@ -119,17 +122,18 @@ class PacmanDQAgent(DQAgent):
                     batch_x = torch.from_numpy(x[start_index:end_index]).cuda()
                 else:
                     batch_x = torch.from_numpy(x[start_index:end_index])
-                batch_y = y[start_index:end_index] / 10     # ...
+                batch_y = y[start_index:end_index] / 100     # ...
                 outp = self.dqnet(batch_x)
                 if torch.cuda.is_available():
                     loss = self.dqnet.criterion(outp, torch.from_numpy(batch_y).cuda())
                 else:
                     loss = self.dqnet.criterion(outp, torch.from_numpy(batch_y))
-                opti.zero_grad()
+                self.opti.zero_grad()
                 loss.backward()
-                opti.step()
+                self.opti.step()
                 avg_loss += loss.detach().cpu().numpy()
-        print(">>> average loss: {}".format(avg_loss/batches/episode))
+            self.scheduler.step()
+        print(">>> agent {} - average loss {} - lr {}".format(self.index, avg_loss/batches/epochs, self.scheduler.get_lr()))
 
     def final(self, state, total_pacmen, agentIndex):
         "Called at the end of each game."
