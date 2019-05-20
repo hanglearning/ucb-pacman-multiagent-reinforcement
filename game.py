@@ -328,8 +328,6 @@ class Actions:
             return Directions.WEST
         if action == Directions.WEST:
             return Directions.EAST
-        if action == None:
-            print("332")
         return action
     reverseDirection = staticmethod(reverseDirection)
 
@@ -694,8 +692,6 @@ class Game:
                         if skip_action:
                             raise TimeoutFunctionException()
                         action = timed_func(observation)
-                        if action == None:
-                            print("698")
                     except TimeoutFunctionException:
                         print("Agent %d timed out on a single move!" %
                               agentIndex, file=sys.stderr)
@@ -734,8 +730,6 @@ class Game:
                     return
             else:
                 action = agent.getAction(observation, total_pacmen, agentIndex)
-                if action == None:
-                    print("738")
             self.unmute()
 
             # Execute the action
