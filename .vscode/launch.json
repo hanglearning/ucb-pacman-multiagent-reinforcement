@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": ["-p", "PacmanDQAgent", "-x", "30", "-n", "30", "-l", "PowerClassic", "--graphics", "--graphicsUpdateFrequency", "3", "--pacmanAmounts", "2,2,5"]
+            "args": ["-p", "ApproximateSarsaAgent, PacmanDQAgent", "-x", "30", "-n", "30", "-l", "PowerClassic", "--graphics", "--graphicsUpdateFrequency", "31", "--pacmanAmounts", "2,2,5"]
             //"args": ["-p", "ApproximateSarsaAgent", "-x", "2000", "-n", "2113", "-l", "smallGrid", "--graphics", "--graphicsUpdateFrequency", "10"]
         }
     ]

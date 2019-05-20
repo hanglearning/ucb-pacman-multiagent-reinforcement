@@ -23,28 +23,29 @@ class PacmanDQAgent(DQAgent):
             self.dqnet = torch.load("model_param/dqn.pt")
         else:
             self.dqnet = DQN(n_features=8)
-        self.dqnet.cuda()
+        # self.dqnet.cuda()
         self.feat_extractor = util.lookup(extractor, globals())()
         self.action_mapping = {'North':0, 'South':1, 'East':2, 'West':3, 'Stop':4}
         self.replay_buffer = []
         self.index = index
         DQAgent.__init__(self, **args)
     
-    def getFeature(self, state, action):
-        feature_dict = self.feat_extractor.getFeatures(state, action)
+    def getFeature(self, state, action, total_pacmen, agentIndex):
+        feature_dict = self.feat_extractor.getFeatures(state, action, total_pacmen, agentIndex)
         feature_dict["action"] = self.action_mapping[action]
         feature = DQN.dict2vec(feature_dict)
         return feature
 
-    def getQValue(self, state, action):
-        feature = torch.from_numpy(self.getFeature(state, action)).cuda()
+    def getQValue(self, state, action, total_pacmen, agentIndex):
+        # feature = torch.from_numpy(self.getFeature(state, action)).cuda()
+        feature = torch.from_numpy(self.getFeature(state, action, total_pacmen, agentIndex))
         return self.dqnet(feature).detach().cpu().numpy()[0]
     
-    def computeValueFromQValues(self, state):
-        legalActions = self.getLegalActions(state)
+    def computeValueFromQValues(self, state, total_pacmen, agentIndex):
+        legalActions = self.getLegalActions(state, total_pacmen, agentIndex)
         if legalActions is None or len(legalActions) == 0:
             return 0.
-        return max([self.getQValue(state, action) for action in legalActions])
+        return max([self.getQValue(state, action, total_pacmen, agentIndex) for action in legalActions])
     
     def computeActionFromQValues(self, state, total_pacmen, agentIndex):
         legalActions = self.getLegalActions(state, total_pacmen, agentIndex)
@@ -53,7 +54,7 @@ class PacmanDQAgent(DQAgent):
             return action
         maxQ = -1000000
         for act in legalActions:
-            q = self.getQValue(state, act)
+            q = self.getQValue(state, act, total_pacmen, agentIndex)
             if maxQ < q:
                 action = act
                 maxQ = q
@@ -78,8 +79,8 @@ class PacmanDQAgent(DQAgent):
         return self.computeValueFromQValues(state)
     
     def update(self, state, action, nextState, reward, total_pacmen, agentIndex):
-        feature = self.getFeature(state, action)
-        target = reward + self.discount * self.computeValueFromQValues(nextState)
+        feature = self.getFeature(state, action, total_pacmen, agentIndex)
+        target = reward + self.discount * self.computeValueFromQValues(nextState, total_pacmen, agentIndex)
         self.store_trajectory(feature, target)
         if self.episodesSoFar < self.numTraining:
             self.replay()
@@ -110,10 +111,12 @@ class PacmanDQAgent(DQAgent):
             for i in range(int(batches)):
                 start_index = i*batch_size
                 end_index = min(start_index+batch_size, n_samples)
-                batch_x = torch.from_numpy(x[start_index:end_index]).cuda()
+                # batch_x = torch.from_numpy(x[start_index:end_index]).cuda()
+                batch_x = torch.from_numpy(x[start_index:end_index])
                 batch_y = y[start_index:end_index] / 10     # ...
                 outp = self.dqnet(batch_x)
-                loss = self.dqnet.criterion(outp, torch.from_numpy(batch_y).cuda())
+                # loss = self.dqnet.criterion(outp, torch.from_numpy(batch_y).cuda())
+                loss = self.dqnet.criterion(outp, torch.from_numpy(batch_y))
                 opti.zero_grad()
                 loss.backward()
                 opti.step()

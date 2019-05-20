@@ -591,8 +591,8 @@ def readCommand(argv):
         if 'numTraining' not in agentOpts:
             agentOpts['numTraining'] = options.numTraining
     
-    pacman_types = options.pacman.split(",")
-    pacman_amounts = options.pacman_amounts.split(",")
+    pacman_types = [pacman_type.strip() for pacman_type in options.pacman.split(",")]
+    pacman_amounts = [pacman_amount.strip() for pacman_amount in options.pacman_amounts.split(",")]
     # to assign different colors for different Pacman type
     total_pacmen_types = len(pacman_types)
     total_pacmen = 0
@@ -689,8 +689,6 @@ def loadAgent(pacman, nographics):
         moduleNames = [f for f in os.listdir(
             moduleDir) if f.endswith('gents.py')]
         for modulename in moduleNames:
-            if modulename == "dqAgents.py":
-                print("")
             try:
                 module = __import__(modulename[:-3])
             except ImportError:
