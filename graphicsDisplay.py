@@ -61,7 +61,14 @@ SCARED_COLOR = formatColor(1, 1, 1)
 
 GHOST_VEC_COLORS = list(map(colorToVector, GHOST_COLORS))
 
-PACMAN_COLOR = formatColor(255.0/255.0, 255.0/255.0, 61.0/255)
+PACMAN_COLORS = []
+PACMAN_COLOR_MAIN = formatColor(255.0/255.0, 255.0/255.0, 61.0/255)
+PACMAN_COLORS.append({"color_val" :PACMAN_COLOR_MAIN, "color_name" : "Yellow"})  # Yellow
+PACMAN_COLORS.append({"color_val" :formatColor(.9, 0, 0), "color_name" : "Red"})  # Red
+PACMAN_COLORS.append({"color_val" :formatColor(0, .3, .9), "color_name" : "Blue"})  # Blue
+PACMAN_COLORS.append({"color_val" :formatColor(.98, .41, .07), "color_name" : "Orange"})  # Orange
+PACMAN_COLORS.append({"color_val" :formatColor(.1, .75, .7), "color_name" : "Green"})  # Green
+PACMAN_COLORS.append({"color_val" :formatColor(.4, 0.13, 0.91), "color_name" : "Purple"})  # Purple
 PACMAN_SCALE = 0.5
 #pacman_speed = 0.25
 
@@ -88,7 +95,7 @@ class InfoPane:
         self.base = (layout.height + 1) * gridSize
         self.height = INFO_PANE_HEIGHT
         self.fontSize = 24
-        self.textColor = PACMAN_COLOR
+        self.textColor = PACMAN_COLORS[0]["color_val"]
         self.drawPane()
 
     def toScreen(self, pos, y=None):
@@ -173,14 +180,14 @@ class PacmanGraphics:
     def checkNullDisplay(self):
         return False
 
-    def initialize(self, state, total_pacmen, isBlue=False):
+    def initialize(self, state, total_pacmen, pacman_types_corresponding_indexes, isBlue=False):
         self.isBlue = isBlue
         self.startGraphics(state)
 
         # self.drawDistributions(state)
         self.distributionImages = None  # Initialized lazily
         self.drawStaticObjects(state)
-        self.drawAgentObjects(state, total_pacmen)
+        self.drawAgentObjects(state, total_pacmen, pacman_types_corresponding_indexes)
 
         # Information
         self.previousState = state
@@ -216,11 +223,11 @@ class PacmanGraphics:
         self.capsules = self.drawCapsules(layout.capsules)
         refresh()
 
-    def drawAgentObjects(self, state, total_pacmen):
+    def drawAgentObjects(self, state, total_pacmen, pacman_types_corresponding_indexes):
         self.agentImages = []  # (agentState, image)
         for index, agent in enumerate(state.agentStates):
             if agent.isPacman:
-                image = self.drawPacman(agent, index)
+                image = self.drawPacman(agent, index, pacman_types_corresponding_indexes)
                 self.agentImages.append((agent, image))
             else:
                 image = self.drawGhost(agent, index, total_pacmen)
@@ -274,16 +281,27 @@ class PacmanGraphics:
                        BACKGROUND_COLOR,
                        "Ruiqi & Hang's Multiagent Pacmen")
 
-    # def get_pacman_color_by_type(pacman):
+    # helper function to color different type of pacman
+    def get_pacman_color_by_type(self, pacmanIndex, pacman_types_corresponding_indexes):
+        pacman_type_index = 0
+        for pacman_type_indexes in pacman_types_corresponding_indexes:
+            if pacmanIndex in pacman_type_indexes:
+                return pacman_type_index
+            else:
+                pacman_type_index += 1
 
-    def drawPacman(self, pacman, index):
+    def drawPacman(self, pacman, index, pacman_types_corresponding_indexes):
+
+        # assign pacman type index
+        pacman_type_index = self.get_pacman_color_by_type(index, pacman_types_corresponding_indexes)
+
         position = self.getPosition(pacman)
         screen_point = self.to_screen(position)
         endpoints = self.getEndpoints(self.getDirection(pacman))
 
         width = PACMAN_OUTLINE_WIDTH
-        outlineColor = PACMAN_COLOR
-        fillColor = PACMAN_COLOR
+        outlineColor = PACMAN_COLORS[pacman_type_index]["color_val"]
+        fillColor = PACMAN_COLORS[pacman_type_index]["color_val"]
 
         if self.capture:
             outlineColor = TEAM_COLORS[index % 2]

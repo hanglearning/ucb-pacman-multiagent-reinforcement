@@ -213,10 +213,25 @@ class ReinforcementAgent(ValueEstimationAgent):
             self.observeTransition(self.lastState, self.lastAction, state, reward, total_pacmen, agentIndex)
         return state
 
-    def registerInitialState(self, state, i, agentType):
+    # helper function to color different type of pacman
+    def get_pacman_color_by_type(self, pacmanIndex, pacman_types_corresponding_indexes):
+        pacman_type_index = 0
+        for pacman_type_indexes in pacman_types_corresponding_indexes:
+            if pacmanIndex in pacman_type_indexes:
+                return pacman_type_index
+            else:
+                pacman_type_index += 1
+
+    def registerInitialState(self, state, i, agentType, pacman_types_corresponding_indexes):
         self.startEpisode()
+        # hard copy from graphicsDisplay.py
+        pacman_colors = ['Yellow', 'Red', 'Blue', 'Orange', 'Green', 'Purple']
+        
+        # get pacman type index
+        pacman_type_index = self.get_pacman_color_by_type(i, pacman_types_corresponding_indexes)
+
         if self.episodesSoFar == 0:
-            print('Beginning %d episodes of Training on %s agent index %d' % (self.numTraining, agentType, i+1))
+            print('Beginning %d episodes of Training on %s agent index %d with color %s' % (self.numTraining, agentType, i, pacman_colors[pacman_type_index]))
 
     def final(self, state, total_pacmen, agentIndex):
         """

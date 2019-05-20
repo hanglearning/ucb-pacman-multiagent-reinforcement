@@ -592,20 +592,21 @@ def readCommand(argv):
             agentOpts['numTraining'] = options.numTraining
     
     pacman_types = [pacman_type.strip() for pacman_type in options.pacman.split(",")]
-    pacman_amounts = [pacman_amount.strip() for pacman_amount in options.pacman_amounts.split(",")]
+    pacman_amounts = [int(pacman_amount.strip()) for pacman_amount in options.pacman_amounts.split(",")]
+    
     # to assign different colors for different Pacman type
-    total_pacmen_types = len(pacman_types)
+    pacman_types_corresponding_indexes = []
+    new_type_beginning_index = 0
+    for pacman_amount in pacman_amounts:
+        pacman_types_corresponding_indexes.append([x for x in range(new_type_beginning_index, new_type_beginning_index+pacman_amount)])
+        new_type_beginning_index += pacman_amount
+    args['pacman_types_corresponding_indexes'] = pacman_types_corresponding_indexes
+
     total_pacmen = 0
     # create pacmen
     args['pacman'] = []
     pacmen_iter = 0
     pacmen_type_start_index = 0
-    # for pacman_amount in pacman_amounts:
-    #     total_pacmen += int(pacman_amount)
-    #     pacmanType = loadAgent(pacman_types[pacmen_iter], noKeyboard)
-    #     pacmen = pacmanType(int(pacman_amount), pacman_types[pacmen_iter], pacmen_type_start_index, **agentOpts)  # Instantiate Pacman with agentArgs
-    #     args['pacman'] += pacmen
-    #     pacmen_type_start_index += int(pacman_amount)
     
     for pacman_type in pacman_types:
         try:
@@ -619,9 +620,6 @@ def readCommand(argv):
         pacmen_type_start_index += pacmen_type_amount
         pacmen_iter += 1
     
-    # pacmanType = loadAgent(options.pacman, noKeyboard)
-    # pacman = pacmanType(num_pacmen, options.pacman, **agentOpts)  # Instantiate Pacman with agentArgs
-    # args['pacman'] = pacman
     args['total_pacmen'] = total_pacmen
 
     # Choose and process a layout for enough pacmen
@@ -726,7 +724,7 @@ def replayGame(layout, actions, display):
     display.finish()
 
 
-def runGames(layout, pacman, ghosts, display, numGames, record, total_pacmen, numTraining=0, catchExceptions=False, timeout=30, graphics=False, graphicsUpdateFrequency=None):
+def runGames(layout, pacman, ghosts, display, numGames, record, total_pacmen, pacman_types_corresponding_indexes, numTraining=0, catchExceptions=False, timeout=30, graphics=False, graphicsUpdateFrequency=None):
     import __main__
     __main__.__dict__['_display'] = display
 
@@ -775,7 +773,7 @@ def runGames(layout, pacman, ghosts, display, numGames, record, total_pacmen, nu
         
         game = rules.newGame(layout, pacman, ghosts,
                              gameDisplay, beQuiet, catchExceptions)
-        game.run(total_pacmen)
+        game.run(total_pacmen, pacman_types_corresponding_indexes)
                 
         if not beQuiet:
             games.append(game)
