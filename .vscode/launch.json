@@ -10,8 +10,8 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": ["-p", "ApproximateSarsaAgent, PacmanDQAgent", "-x", "500", "-n", "510", "-l", "PowerClassic", "--pacmanAmounts", "2,2,5"]
-            //"args": ["-p", "ApproximateSarsaAgent, PacmanDQAgent", "-x", "30", "-n", "30", "-l", "PowerClassic", "--graphics", "--graphicsUpdateFrequency", "31", "--pacmanAmounts", "2,2,5"]
+            "args": ["-p", "ApproximateSarsaAgent, PacmanDQAgent", "-x", "100", "-n", "120", "-l", "powerClassic", "--pacmanAmounts", "2,2,5"]
+            //"args": ["-p", "ApproximateSarsaAgent, PacmanDQAgent", "-x", "30", "-n", "30", "-l", "powerClassic", "--graphics", "--graphicsUpdateFrequency", "31", "--pacmanAmounts", "2,2,5"]
             //"args": ["-p", "ApproximateSarsaAgent", "-x", "2000", "-n", "2113", "-l", "smallGrid", "--graphics", "--graphicsUpdateFrequency", "10"]
         }
     ]

@@ -4,6 +4,7 @@
 __pycache__
 model_param
 layouts/Multi_Pacmen_Layouts/
+.vscode
 
 # Compiled source #
 ###################
