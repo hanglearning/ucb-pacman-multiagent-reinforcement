@@ -222,16 +222,20 @@ class ReinforcementAgent(ValueEstimationAgent):
             else:
                 pacman_type_index += 1
 
-    def registerInitialState(self, state, i, agentType, pacman_types_corresponding_indexes):
+    def registerInitialState(self, state, i, agentType, pacman_types_corresponding_indexes, graphics):
         self.startEpisode()
-        # hard copy from graphicsDisplay.py
-        pacman_colors = ['Yellow', 'Red', 'Blue', 'Orange', 'Green', 'Purple']
-        
-        # get pacman type index
-        pacman_type_index = self.get_pacman_color_by_type(i, pacman_types_corresponding_indexes)
 
         if self.episodesSoFar == 0:
-            print('Beginning %d episodes of Training on %s agent index %d with color %s' % (self.numTraining, agentType, i, pacman_colors[pacman_type_index]))
+            print('Beginning %d episodes of Training on %s agent index %d' % (self.numTraining, agentType, i), end = "")
+            
+            if graphics:
+                # hard copy from graphicsDisplay.py
+                pacman_colors = ['Yellow', 'Red', 'Blue', 'Orange', 'Green', 'Purple']
+                # get pacman type index
+                pacman_type_index = self.get_pacman_color_by_type(i, pacman_types_corresponding_indexes)
+                print(' with color %s' % (pacman_colors[pacman_type_index]))
+            else:
+                print("")
 
     def final(self, state, total_pacmen, agentIndex):
         """

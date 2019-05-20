@@ -25,7 +25,7 @@ QUIET = False  # Supresses output
 
 
 class NullGraphics:
-    def initialize(self, state, isBlue=False):
+    def initialize(self, state, pacman_types_corresponding_indexes, isBlue=False):
         pass
 
     def update(self, state, total_pacmen):

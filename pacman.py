@@ -773,7 +773,7 @@ def runGames(layout, pacman, ghosts, display, numGames, record, total_pacmen, pa
         
         game = rules.newGame(layout, pacman, ghosts,
                              gameDisplay, beQuiet, catchExceptions)
-        game.run(total_pacmen, pacman_types_corresponding_indexes)
+        game.run(total_pacmen, pacman_types_corresponding_indexes, graphics)
                 
         if not beQuiet:
             games.append(game)

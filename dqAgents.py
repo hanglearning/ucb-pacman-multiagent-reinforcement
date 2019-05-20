@@ -121,7 +121,7 @@ class PacmanDQAgent(DQAgent):
                 loss.backward()
                 opti.step()
                 avg_loss += loss.detach().cpu().numpy()
-        print(">>> average loss: {}".format(avg_loss/batches/episode))
+        # print(">>> average loss: {}".format(avg_loss/batches/episode))
 
     def final(self, state, total_pacmen, agentIndex):
         "Called at the end of each game."
