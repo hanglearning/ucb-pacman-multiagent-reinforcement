@@ -10,7 +10,7 @@ from featureExtractors import *
 import torch
 import torch.optim as optim
 
-def createDQAgent(num_pacmen, agent, start_index, **args):
+def createPacmanDQAgent(num_pacmen, agent, start_index, **args):
     return [eval(agent)(index=i, **args) for i in range(start_index, start_index + num_pacmen)]
 
 class DQAgent(ReinforcementAgent):
@@ -18,7 +18,7 @@ class DQAgent(ReinforcementAgent):
         ReinforcementAgent.__init__(self, **args)
 
 class PacmanDQAgent(DQAgent):
-    def __init__(self, extractor='ComplexExtractor', **args):
+    def __init__(self, index, extractor='ComplexExtractor', **args):
         if os.path.exists("model_param/dqn.pt"):
             self.dqnet = torch.load("model_param/dqn.pt")
         else:
@@ -27,7 +27,7 @@ class PacmanDQAgent(DQAgent):
         self.feat_extractor = util.lookup(extractor, globals())()
         self.action_mapping = {'North':0, 'South':1, 'East':2, 'West':3, 'Stop':4}
         self.replay_buffer = []
-        self.index = 0
+        self.index = index
         DQAgent.__init__(self, **args)
     
     def getFeature(self, state, action):

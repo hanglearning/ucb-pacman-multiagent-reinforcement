@@ -689,6 +689,8 @@ def loadAgent(pacman, nographics):
         moduleNames = [f for f in os.listdir(
             moduleDir) if f.endswith('gents.py')]
         for modulename in moduleNames:
+            if modulename == "dqAgents.py":
+                print("")
             try:
                 module = __import__(modulename[:-3])
             except ImportError:
