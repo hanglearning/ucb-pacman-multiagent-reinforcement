@@ -8,6 +8,7 @@ from learningAgents import ReinforcementAgent
 from featureExtractors import *
 
 import torch
+import torch.cuda
 import torch.optim as optim
 
 def createPacmanDQAgent(num_pacmen, agent, start_index, **args):
@@ -23,7 +24,8 @@ class PacmanDQAgent(DQAgent):
             self.dqnet = torch.load("model_param/dqn.pt")
         else:
             self.dqnet = DQN(n_features=8)
-        # self.dqnet.cuda()
+        if torch.cuda.is_available():
+            self.dqnet.cuda()
         self.feat_extractor = util.lookup(extractor, globals())()
         self.action_mapping = {'North':0, 'South':1, 'East':2, 'West':3, 'Stop':4}
         self.replay_buffer = []
@@ -37,8 +39,10 @@ class PacmanDQAgent(DQAgent):
         return feature
 
     def getQValue(self, state, action, total_pacmen, agentIndex):
-        # feature = torch.from_numpy(self.getFeature(state, action)).cuda()
-        feature = torch.from_numpy(self.getFeature(state, action, total_pacmen, agentIndex))
+        if torch.cuda.is_available():
+            feature = torch.from_numpy(self.getFeature(state, action, total_pacmen, agentIndex)).cuda()
+        else:
+            feature = torch.from_numpy(self.getFeature(state, action, total_pacmen, agentIndex))
         return self.dqnet(feature).detach().cpu().numpy()[0]
     
     def computeValueFromQValues(self, state, total_pacmen, agentIndex):
@@ -111,17 +115,21 @@ class PacmanDQAgent(DQAgent):
             for i in range(int(batches)):
                 start_index = i*batch_size
                 end_index = min(start_index+batch_size, n_samples)
-                # batch_x = torch.from_numpy(x[start_index:end_index]).cuda()
-                batch_x = torch.from_numpy(x[start_index:end_index])
+                if torch.cuda.is_available():
+                    batch_x = torch.from_numpy(x[start_index:end_index]).cuda()
+                else:
+                    batch_x = torch.from_numpy(x[start_index:end_index])
                 batch_y = y[start_index:end_index] / 10     # ...
                 outp = self.dqnet(batch_x)
-                # loss = self.dqnet.criterion(outp, torch.from_numpy(batch_y).cuda())
-                loss = self.dqnet.criterion(outp, torch.from_numpy(batch_y))
+                if torch.cuda.is_available():
+                    loss = self.dqnet.criterion(outp, torch.from_numpy(batch_y).cuda())
+                else:
+                    loss = self.dqnet.criterion(outp, torch.from_numpy(batch_y))
                 opti.zero_grad()
                 loss.backward()
                 opti.step()
                 avg_loss += loss.detach().cpu().numpy()
-        # print(">>> average loss: {}".format(avg_loss/batches/episode))
+        print(">>> average loss: {}".format(avg_loss/batches/episode))
 
     def final(self, state, total_pacmen, agentIndex):
         "Called at the end of each game."
