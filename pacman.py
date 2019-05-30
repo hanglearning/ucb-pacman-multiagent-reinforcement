@@ -444,23 +444,25 @@ class GhostRules:
         ghostState.scaredTimer = max(0, timer - 1)
     decrementTimer = staticmethod(decrementTimer)
 
-    def checkDeath(state, agentIndex, total_pacmen):
-        pacmanPositions = []
-        for pacmanIndex in range(total_pacmen):
-            pacmanPositions.append(state.getPacmanPosition(pacmanIndex))
-        if agentIndex < total_pacmen:  # Pacman just moved; Anyone can kill him
-            for index in range(total_pacmen, len(state.data.agentStates)):
-                ghostState = state.data.agentStates[index]
+    def checkDeath(state, agentIndex, total_pacmen): 
+        if agentIndex < total_pacmen:  # Pacman just moved
+            pacmanIndex = agentIndex
+            for ghostIndex in range(total_pacmen, len(state.data.agentStates)):
+                ghostState = state.data.agentStates[ghostIndex]
                 ghostPosition = ghostState.configuration.getPosition()
-                for pacmanPosition in pacmanPositions:
-                    if GhostRules.canKill(pacmanPosition, ghostPosition):
-                        GhostRules.collide(state, ghostState, index)
-        else:
-            ghostState = state.data.agentStates[agentIndex]
+                pacmanPosition = state.getPacmanPosition(pacmanIndex)
+                if GhostRules.canKill(pacmanPosition, ghostPosition):
+                    GhostRules.collide(state, ghostState, ghostIndex)
+        else:   # Ghost just moved
+            ghostIndex = agentIndex
+            pacmanPositions = []
+            for pacmanIndex in range(total_pacmen):
+                pacmanPositions.append(state.getPacmanPosition(pacmanIndex))
+            ghostState = state.data.agentStates[ghostIndex]
             ghostPosition = ghostState.configuration.getPosition()
             for pacmanPosition in pacmanPositions:
                 if GhostRules.canKill(pacmanPosition, ghostPosition):
-                    GhostRules.collide(state, ghostState, agentIndex)
+                    GhostRules.collide(state, ghostState, ghostIndex)
     checkDeath = staticmethod(checkDeath)
 
     def collide(state, ghostState, agentIndex):

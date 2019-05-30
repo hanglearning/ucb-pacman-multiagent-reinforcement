@@ -32,6 +32,7 @@ class PacmanDQAgent(DQAgent):
         self.action_mapping = {'North':0, 'South':1, 'East':2, 'West':3, 'Stop':4}
         self.replay_buffer = []
         self.index = index
+        self.isDead = False
         DQAgent.__init__(self, **args)
     
     def getFeature(self, state, action, total_pacmen, agentIndex):

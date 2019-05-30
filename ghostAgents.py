@@ -23,6 +23,7 @@ import util
 class GhostAgent(Agent):
     def __init__(self, index):
         self.index = index
+        self.isDead = False
 
     def getAction(self, state, total_pacmen, agentIndex):
         dist = self.getDistribution(state, total_pacmen)
