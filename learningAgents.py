@@ -225,9 +225,10 @@ class ReinforcementAgent(ValueEstimationAgent):
     def registerInitialState(self, state, i, agentType, pacman_types_corresponding_indexes, graphics):
         self.startEpisode()
 
-        if self.episodesSoFar == 0:
+        if self.episodesSoFar == 0 and self.hasStart == False:
             print('Beginning %d episodes of Training on %s agent index %d' % (self.numTraining, agentType, i), end = "")
-            
+            self.hasStart = True
+
             if graphics:
                 # hard copy from graphicsDisplay.py
                 pacman_colors = ['Yellow', 'Red', 'Blue', 'Orange', 'Green', 'Purple']
