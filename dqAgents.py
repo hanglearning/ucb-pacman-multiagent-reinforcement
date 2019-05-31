@@ -122,7 +122,7 @@ class PacmanDQAgent(DQAgent):
                     batch_x = torch.from_numpy(x[start_index:end_index]).cuda()
                 else:
                     batch_x = torch.from_numpy(x[start_index:end_index])
-                batch_y = y[start_index:end_index] / 100     # ...
+                batch_y = y[start_index:end_index] / 10     # ...
                 outp = self.dqnet(batch_x)
                 if torch.cuda.is_available():
                     loss = self.dqnet.criterion(outp, torch.from_numpy(batch_y).cuda())
