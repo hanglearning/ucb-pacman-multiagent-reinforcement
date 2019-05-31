@@ -312,7 +312,7 @@ class ClassicGameRules:
 
     def lose(self, state, game):
         if not self.quiet:
-            print("Pacman died! Score: %d" % state.data.score)
+            print("All Pacmen Die! Score: %d" % state.data.score)
         game.gameOver = True
 
     def getProgress(self, game):
@@ -809,7 +809,7 @@ def runGames(layout, pacmen, ghosts, display, numGames, record, total_pacmen, pa
 
         game = rules.newGame(layout, pacmen, ghosts,
                              gameDisplay, beQuiet, catchExceptions)
-        game.run(total_pacmen, pacmen_types_corresponding_indexes, graphics, pacmen)
+        game.run(total_pacmen, pacmen_types_corresponding_indexes, graphics, pacmen, beQuiet)
                 
         if not beQuiet:
             games.append(game)

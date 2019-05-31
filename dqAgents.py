@@ -20,8 +20,8 @@ class DQAgent(ReinforcementAgent):
 
 class PacmanDQAgent(DQAgent):
     def __init__(self, index, extractor='ComplexExtractor', **args):
-        if os.path.exists("model_param/dqn.pt"):
-            self.dqnet = torch.load("model_param/dqn.pt")
+        if os.path.exists(f"model_param/dqn_{index}.pt"):
+            self.dqnet = torch.load(f"model_param/dqn_{index}.pt")
         else:
             self.dqnet = DQN(n_features=8)
         if torch.cuda.is_available():
@@ -138,14 +138,16 @@ class PacmanDQAgent(DQAgent):
             self.scheduler.step()
         print(">>> agent {} - average loss {} - lr {}".format(self.index, avg_loss/batches/epochs, self.scheduler.get_lr()))
 
-    def final(self, state, total_pacmen, agentIndex):
+    def final(self, state, total_pacmen, agentIndex, beQuite):
         "Called at the end of each game."
         # call the super-class final method
-        DQAgent.final(self, state, total_pacmen, agentIndex)
+        DQAgent.final(self, state, total_pacmen, agentIndex, beQuite)
 
         # did we finish training?
         if self.episodesSoFar == self.numTraining:
             # you might want to print your weights here for debugging
             "*** YOUR CODE HERE ***"
-            torch.save(self.dqnet, "model_param/dqn.pt")
-            print("DQN model saved at 'model_param/dqn.pt'")
+            if not os.path.exists('model_param'):
+                os.makedirs('model_param')
+            torch.save(self.dqnet, f"model_param/dqn_{agentIndex}.pt")
+            print(f"DQN model for pacman {agentIndex} saved at 'model_param/dqn_{agentIndex}.pt'")

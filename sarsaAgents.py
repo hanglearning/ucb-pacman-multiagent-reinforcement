@@ -101,9 +101,9 @@ class ApproximateSarsaAgent(PacmanSarsaAgent):
                 self.weights[feature_key] = random.uniform(-1.,1.)
             self.weights[feature_key] += self.alpha * difference * features[feature_key]
 
-    def final(self, state, total_pacmen, agentIndex):
+    def final(self, state, total_pacmen, agentIndex, beQuiet):
         "Called at the end of each game."
-        PacmanSarsaAgent.final(self, state, total_pacmen, agentIndex)
+        PacmanSarsaAgent.final(self, state, total_pacmen, agentIndex, beQuiet)
         if self.episodesSoFar == self.numTraining:
             pass
             # print(self.weights)

@@ -603,7 +603,7 @@ class Game:
         sys.stdout = OLD_STDOUT
         sys.stderr = OLD_STDERR
 
-    def run(self, total_pacmen, pacman_types_corresponding_indexes, graphics, pacmen):
+    def run(self, total_pacmen, pacman_types_corresponding_indexes, graphics, pacmen, beQuiet):
         """
         Main control loop for game play.
         """
@@ -754,8 +754,6 @@ class Game:
             else:
                 self.state = self.state.generateSuccessor(agentIndex, action, total_pacmen, pacmen)
 
-            # Allow for game specific conditions (winning, losing, etc.)
-            self.rules.process(self.state, self)
             # check if there's dead pacman in the current round
             deadPacman = None
             deadPacmanIndex = None
@@ -766,8 +764,7 @@ class Game:
                 if "final" in dir(deadPacman):
                     try:
                         self.mute(deadPacmanIndex)
-                        deadPacman.final(self.state, total_pacmen, deadPacmanIndex)
-                        print(f"Pacman {deadPacmanIndex} dies!")
+                        deadPacman.final(self.state, total_pacmen, deadPacmanIndex, beQuiet)
                         self.unmute()
                     except Exception as data:
                         if not self.catchExceptions:
@@ -777,6 +774,9 @@ class Game:
                         return
                 self.state.deadPacmanIndex = None                
             
+            # Allow for game specific conditions (winning, losing, etc.)
+            self.rules.process(self.state, self)
+
             # Change the display
             # now also remove the dead pacman from the screen
             self.display.update(self.state.data, total_pacmen, agent, agentIndex, deadPacman, deadPacmanIndex)
