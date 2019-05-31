@@ -33,7 +33,9 @@ class PacmanDQAgent(DQAgent):
         self.replay_buffer = []
         self.index = index
         self.isDead = False
-        self.hasStart = False
+        self.hasStarted = False
+        self.isPacman = True
+        self.isFinal = False
         DQAgent.__init__(self, **args)
     
     def getFeature(self, state, action, total_pacmen, agentIndex):

@@ -494,6 +494,7 @@ class GhostRules:
                 # mark this Pacman as dead
                 deadPacman = pacmenAgents[pacmanIndex]
                 deadPacman.isDead = True
+                state.data.deadPacmanIndex = pacmanIndex
                 # check if all pacmen die
                 isAllPacmenDie = GhostRules.checkAllPacmenDie(total_pacmen, pacmenAgents)
                 if isAllPacmenDie == True:

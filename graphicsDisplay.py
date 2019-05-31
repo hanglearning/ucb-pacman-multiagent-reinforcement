@@ -249,7 +249,7 @@ class PacmanGraphics:
             self.agentImages[agentIndex] = (newState, image)
         refresh()
 
-    def update(self, newState, total_pacmen):
+    def update(self, newState, total_pacmen, agent, agentIndex, deadPacman, deadPacmanIndex):
         agentIndex = newState._agentMoved
         agentState = newState.agentStates[agentIndex]
 
@@ -266,6 +266,9 @@ class PacmanGraphics:
             self.removeFood(newState._foodEaten, self.food)
         if newState._capsuleEaten != None:
             self.removeCapsule(newState._capsuleEaten, self.capsules)
+        if deadPacman != None:
+            self.removeDeadPacman(deadPacmanIndex)
+        
         self.infoPane.updateScore(newState.score)
         if 'ghostDistances' in dir(newState):
             self.infoPane.updateGhostDistances(newState.ghostDistances)
@@ -632,6 +635,9 @@ class PacmanGraphics:
     def removeCapsule(self, cell, capsuleImages):
         x, y = cell
         remove_from_screen(capsuleImages[(x, y)])
+    
+    def removeDeadPacman(self, deadPacmanIndex):
+        remove_from_screen(self.agentImages[deadPacmanIndex][1][0])
 
     def drawExpandedCells(self, cells):
         """
