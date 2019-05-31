@@ -35,7 +35,6 @@ class PacmanDQAgent(DQAgent):
         self.isDead = False
         self.hasStarted = False
         self.isPacman = True
-        self.isFinal = False
         DQAgent.__init__(self, **args)
     
     def getFeature(self, state, action, total_pacmen, agentIndex):

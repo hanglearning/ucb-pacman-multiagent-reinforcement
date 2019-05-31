@@ -28,7 +28,7 @@ class NullGraphics:
     def initialize(self, state, pacman_types_corresponding_indexes, isBlue=False):
         pass
 
-    def update(self, state, total_pacmen):
+    def update(self, state, total_pacmen, agent, agentIndex, deadPacman, deadPacmanIndex):
         pass
 
     def checkNullDisplay(self):
@@ -59,7 +59,7 @@ class PacmanGraphics:
         self.turn = 0
         self.agentCounter = 0
 
-    def update(self, state):
+    def update(self, state,total_pacmen, agent, agentIndex, deadPacman, deadPacmanIndex):
         numAgents = len(state.agentStates)
         self.agentCounter = (self.agentCounter + 1) % numAgents
         if self.agentCounter == 0:

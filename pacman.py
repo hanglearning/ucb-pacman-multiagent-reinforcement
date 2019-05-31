@@ -465,9 +465,13 @@ class GhostRules:
             ghostPosition = ghostState.configuration.getPosition()
             # iterate over pacmen
             for pacmanIndex in range(len(pacmanPositions)):
-                pacmanPosition = pacmanPositions[pacmanIndex]
-                if GhostRules.canKill(pacmanPosition, ghostPosition):
-                    GhostRules.collide(state, ghostState, ghostIndex, pacmanIndex, pacmenAgents, total_pacmen)
+                # used for textDisplay(textDisplay has no machinism to remove a pacman after it dies)
+                if pacmenAgents[pacmanIndex].isDead == False:
+                    pacmanPosition = pacmanPositions[pacmanIndex]
+                    if GhostRules.canKill(pacmanPosition, ghostPosition):
+                        GhostRules.collide(state, ghostState, ghostIndex, pacmanIndex, pacmenAgents, total_pacmen)
+                else:
+                    continue
     checkDeath = staticmethod(checkDeath)
 
     def checkAllPacmenDie(total_pacmen, pacmenAgents):

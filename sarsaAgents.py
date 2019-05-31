@@ -34,7 +34,6 @@ class PacmanSarsaAgent(ReinforcementAgent):
         self.isDead = False
         self.hasStarted = False
         self.isPacman = True
-        self.isFinal = False
         ReinforcementAgent.__init__(self, **args)
 
 
