@@ -30,7 +30,9 @@ class PacmanSarsaAgent(ReinforcementAgent):
         args['gamma'] = gamma
         args['alpha'] = alpha
         args['numTraining'] = numTraining
-        self.index = index  # This is always Pacman
+        self.index = index
+        self.isDead = False
+        self.hasStart = False
         ReinforcementAgent.__init__(self, **args)
 
 

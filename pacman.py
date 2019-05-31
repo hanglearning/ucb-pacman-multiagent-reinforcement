@@ -100,7 +100,7 @@ class GameState:
         else:
             return GhostRules.getLegalActions(self, agentIndex, total_pacmen)
 
-    def generateSuccessor(self, agentIndex, action, total_pacmen):
+    def generateSuccessor(self, agentIndex, action, total_pacmen, pacmen):
         """
         Returns the successor state after the specified agent takes the action.
         """
@@ -125,7 +125,7 @@ class GameState:
             GhostRules.decrementTimer(state.data.agentStates[agentIndex])
 
         # Resolve multi-agent effects
-        GhostRules.checkDeath(state, agentIndex, total_pacmen)
+        GhostRules.checkDeath(state, agentIndex, total_pacmen, pacmen)
 
         # Book keeping
         state.data._agentMoved = agentIndex
@@ -160,6 +160,8 @@ class GameState:
 
     def getGhostState(self, agentIndex, total_pacmen):
         if agentIndex < total_pacmen or agentIndex >= self.getNumAgents():
+            # Occasional Bug. Seems to happen if a pacman dies at the beginning
+            print(f"Debug agentIndex >= {self.getNumAgents()} == True")
             raise Exception("Invalid index passed to getGhostState")
         return self.data.agentStates[agentIndex]
 
@@ -444,36 +446,60 @@ class GhostRules:
         ghostState.scaredTimer = max(0, timer - 1)
     decrementTimer = staticmethod(decrementTimer)
 
-    def checkDeath(state, agentIndex, total_pacmen):
-        pacmanPositions = []
-        for pacmanIndex in range(total_pacmen):
-            pacmanPositions.append(state.getPacmanPosition(pacmanIndex))
-        if agentIndex < total_pacmen:  # Pacman just moved; Anyone can kill him
-            for index in range(total_pacmen, len(state.data.agentStates)):
-                ghostState = state.data.agentStates[index]
+    def checkDeath(state, agentIndex, total_pacmen, pacmenAgents): 
+        if agentIndex < total_pacmen:  # Pacman just moved
+            pacmanIndex = agentIndex
+            # iterate over ghosts
+            for ghostIndex in range(total_pacmen, len(state.data.agentStates)):
+                ghostState = state.data.agentStates[ghostIndex]
                 ghostPosition = ghostState.configuration.getPosition()
-                for pacmanPosition in pacmanPositions:
-                    if GhostRules.canKill(pacmanPosition, ghostPosition):
-                        GhostRules.collide(state, ghostState, index)
-        else:
-            ghostState = state.data.agentStates[agentIndex]
-            ghostPosition = ghostState.configuration.getPosition()
-            for pacmanPosition in pacmanPositions:
+                pacmanPosition = state.getPacmanPosition(pacmanIndex)
                 if GhostRules.canKill(pacmanPosition, ghostPosition):
-                    GhostRules.collide(state, ghostState, agentIndex)
+                    GhostRules.collide(state, ghostState, ghostIndex, pacmanIndex, pacmenAgents, total_pacmen)
+        else:   # Ghost just moved
+            ghostIndex = agentIndex
+            pacmanPositions = []
+            for pacmanIndex in range(total_pacmen):
+                pacmanPositions.append(state.getPacmanPosition(pacmanIndex))
+            ghostState = state.data.agentStates[ghostIndex]
+            ghostPosition = ghostState.configuration.getPosition()
+            # iterate over pacmen
+            for pacmanIndex in range(len(pacmanPositions)):
+                pacmanPosition = pacmanPositions[pacmanIndex]
+                if GhostRules.canKill(pacmanPosition, ghostPosition):
+                    GhostRules.collide(state, ghostState, ghostIndex, pacmanIndex, pacmenAgents, total_pacmen)
     checkDeath = staticmethod(checkDeath)
 
-    def collide(state, ghostState, agentIndex):
+    def checkAllPacmenDie(total_pacmen, pacmenAgents):
+        numOfDeadPacman = 0
+        for pacman in pacmenAgents:
+            if pacman.isDead == True:
+                numOfDeadPacman += 1
+        if numOfDeadPacman == total_pacmen:
+            return True
+        else:
+            return False
+    checkAllPacmenDie = staticmethod(checkAllPacmenDie)
+
+    def collide(state, ghostState, ghostIndex, pacmanIndex, pacmenAgents, total_pacmen):
         if ghostState.scaredTimer > 0:
             state.data.scoreChange += 200
             GhostRules.placeGhost(state, ghostState)
             ghostState.scaredTimer = 0
             # Added for first-person
-            state.data._eaten[agentIndex] = True
+            state.data._eaten[ghostIndex] = True
         else:
             if not state.data._win:
                 state.data.scoreChange -= 500
-                state.data._lose = True
+                # mark this Pacman as dead
+                deadPacman = pacmenAgents[pacmanIndex]
+                deadPacman.isDead = True
+                # check if all pacmen die
+                isAllPacmenDie = GhostRules.checkAllPacmenDie(total_pacmen, pacmenAgents)
+                if isAllPacmenDie == True:
+                    state.data._lose = True
+                else:
+                    pass
     collide = staticmethod(collide)
 
     def canKill(pacmanPosition, ghostPosition):
@@ -528,11 +554,11 @@ def readCommand(argv):
                       help=default(
                           'the LAYOUT_FILE from which to load the map layout'),
                       metavar='LAYOUT_FILE', default='mediumClassic')
-    parser.add_option('-p', '--pacman', dest='pacman',
+    parser.add_option('-p', '--pacmen', dest='pacmen',
                       help=default(
                           'the agent TYPE in the pacmanAgents module to use; separate by comma for multi Pacmen purpose'),
                       metavar='TYPE', default='KeyboardAgent')
-    parser.add_option('--pacmanAmounts', dest='pacman_amounts',
+    parser.add_option('--pacmanAmounts', dest='pacmen_amounts',
                       help=default(
                           'set the amount of Pacmen for each type specified'))
     parser.add_option('-t', '--textGraphics', action='store_true', dest='textGraphics',
@@ -591,33 +617,33 @@ def readCommand(argv):
         if 'numTraining' not in agentOpts:
             agentOpts['numTraining'] = options.numTraining
     
-    pacman_types = [pacman_type.strip() for pacman_type in options.pacman.split(",")]
-    pacman_amounts = [int(pacman_amount.strip()) for pacman_amount in options.pacman_amounts.split(",")]
+    pacmen_types = [pacman_type.strip() for pacman_type in options.pacmen.split(",")]
+    pacmen_amounts = [int(pacman_amount.strip()) for pacman_amount in options.pacmen_amounts.split(",")]
     
     # to assign different colors for different Pacman type
-    pacman_types_corresponding_indexes = []
+    pacmen_types_corresponding_indexes = []
     new_type_beginning_index = 0
-    for pacman_amount in pacman_amounts:
-        pacman_types_corresponding_indexes.append([x for x in range(new_type_beginning_index, new_type_beginning_index+pacman_amount)])
+    for pacman_amount in pacmen_amounts:
+        pacmen_types_corresponding_indexes.append([x for x in range(new_type_beginning_index, new_type_beginning_index+pacman_amount)])
         new_type_beginning_index += pacman_amount
-    args['pacman_types_corresponding_indexes'] = pacman_types_corresponding_indexes
+    args['pacmen_types_corresponding_indexes'] = pacmen_types_corresponding_indexes
 
     total_pacmen = 0
     # create pacmen
-    args['pacman'] = []
+    args['pacmen'] = []
     pacmen_iter = 0
-    pacmen_type_start_index = 0
+    pacman_type_start_index = 0
     
-    for pacman_type in pacman_types:
+    for pacman_type in pacmen_types:
         try:
-            pacmen_type_amount = int(pacman_amounts[pacmen_iter])
+            pacmen_type_amount = int(pacmen_amounts[pacmen_iter])
         except:
             pacmen_type_amount = 1
         total_pacmen += pacmen_type_amount
         pacmanType = loadAgent(pacman_type, noKeyboard)
-        pacmen = pacmanType(pacmen_type_amount, pacman_type, pacmen_type_start_index, **agentOpts)  # Instantiate Pacman with agentArgs
-        args['pacman'] += pacmen
-        pacmen_type_start_index += pacmen_type_amount
+        pacmen = pacmanType(pacmen_type_amount, pacman_type, pacman_type_start_index, **agentOpts)  # Instantiate Pacman with agentArgs
+        args['pacmen'] += pacmen
+        pacman_type_start_index += pacmen_type_amount
         pacmen_iter += 1
     
     args['total_pacmen'] = total_pacmen
@@ -724,7 +750,7 @@ def replayGame(layout, actions, display):
     display.finish()
 
 
-def runGames(layout, pacman, ghosts, display, numGames, record, total_pacmen, pacman_types_corresponding_indexes, numTraining=0, catchExceptions=False, timeout=30, graphics=False, graphicsUpdateFrequency=None):
+def runGames(layout, pacmen, ghosts, display, numGames, record, total_pacmen, pacmen_types_corresponding_indexes, numTraining=0, catchExceptions=False, timeout=30, graphics=False, graphicsUpdateFrequency=None):
     import __main__
     __main__.__dict__['_display'] = display
 
@@ -767,13 +793,18 @@ def runGames(layout, pacman, ghosts, display, numGames, record, total_pacmen, pa
             rules.quiet = False
         else:
              # Suppress output and graphics
+            print(f"Game {i} begins.")
             import textDisplay
             gameDisplay = textDisplay.NullGraphics()
             rules.quiet = True
         
-        game = rules.newGame(layout, pacman, ghosts,
+        # all pacmen reborn if they were dead from the last round
+        for pacman in pacmen:
+            pacman.isDead = False if pacman.isDead == True else False
+
+        game = rules.newGame(layout, pacmen, ghosts,
                              gameDisplay, beQuiet, catchExceptions)
-        game.run(total_pacmen, pacman_types_corresponding_indexes, graphics)
+        game.run(total_pacmen, pacmen_types_corresponding_indexes, graphics, pacmen)
                 
         if not beQuiet:
             games.append(game)

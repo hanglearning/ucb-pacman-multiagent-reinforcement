@@ -601,7 +601,7 @@ class Game:
         sys.stdout = OLD_STDOUT
         sys.stderr = OLD_STDERR
 
-    def run(self, total_pacmen, pacman_types_corresponding_indexes, graphics):
+    def run(self, total_pacmen, pacman_types_corresponding_indexes, graphics, pacmen):
         """
         Main control loop for game play.
         """
@@ -653,6 +653,11 @@ class Game:
         while not self.gameOver:
             # Fetch the next agent
             agent = self.agents[agentIndex]
+            # if this is a dead pacman, skip load it (ghost isDead always False)
+            if agent.isDead == True:
+                # Next agent
+                agentIndex = (agentIndex + 1) % numAgents
+                continue
             move_time = 0
             skip_action = False
             # Generate an observation of the state
@@ -744,7 +749,7 @@ class Game:
                     self.unmute()
                     return
             else:
-                self.state = self.state.generateSuccessor(agentIndex, action, total_pacmen)
+                self.state = self.state.generateSuccessor(agentIndex, action, total_pacmen, pacmen)
 
             # Change the display
             self.display.update(self.state.data, total_pacmen)
@@ -753,6 +758,21 @@ class Game:
 
             # Allow for game specific conditions (winning, losing, etc.)
             self.rules.process(self.state, self)
+            # check if this agent is dead(only if it's a pacman)
+            if agent.isDead == True:
+                # inform this learning agent of the game result
+                if "final" in dir(agent):
+                    try:
+                        self.mute(agentIndex)
+                        agent.final(self.state, total_pacmen, agentIndex)
+                        print(f"Pacman {agentIndex} dies!")
+                        self.unmute()
+                    except Exception as data:
+                        if not self.catchExceptions:
+                            raise
+                        self._agentCrash(agentIndex)
+                        self.unmute()
+                        return
             # Track progress
             if agentIndex == numAgents + 1:
                 self.numMoves += 1
@@ -762,17 +782,20 @@ class Game:
             if _BOINC_ENABLED:
                 boinc.set_fraction_done(self.getProgress())
         
-        # inform a learning agent of the game result
+        # Only used for ghosts after changing to end the game iff all pacmen die
         for agentIndex, agent in enumerate(self.agents):
-            if "final" in dir(agent):
-                try:
-                    self.mute(agentIndex)
-                    agent.final(self.state, total_pacmen, agentIndex)
-                    self.unmute()
-                except Exception as data:
-                    if not self.catchExceptions:
-                        raise
-                    self._agentCrash(agentIndex)
-                    self.unmute()
-                    return
+            if agent.isDead == False:
+                if "final" in dir(agent):
+                    try:
+                        self.mute(agentIndex)
+                        agent.final(self.state, total_pacmen, agentIndex)
+                        self.unmute()
+                    except Exception as data:
+                        if not self.catchExceptions:
+                            raise
+                        self._agentCrash(agentIndex)
+                        self.unmute()
+                        return
+            else:
+                continue
         self.display.finish()
