@@ -617,7 +617,7 @@ def readCommand(argv):
     noKeyboard = options.gameToReplay == None and (
         options.textGraphics or options.quietGraphics)
     agentOpts = parseAgentArgs(options.agentArgs)
-    if options.numTraining > 0:
+    if options.numTraining >= 0:
         args['numTraining'] = options.numTraining
         if 'numTraining' not in agentOpts:
             agentOpts['numTraining'] = options.numTraining
@@ -809,7 +809,13 @@ def runGames(layout, pacmen, ghosts, display, numGames, record, total_pacmen, pa
 
         game = rules.newGame(layout, pacmen, ghosts,
                              gameDisplay, beQuiet, catchExceptions)
-        game.run(total_pacmen, pacmen_types_corresponding_indexes, graphics, pacmen, beQuiet)
+        
+        is_training = True
+        if numTraining == 0:
+            is_training = False
+            print("No training for Pacmen.\nEvaluating begins.")
+
+        game.run(total_pacmen, pacmen_types_corresponding_indexes, graphics, pacmen, beQuiet, is_training)
                 
         if not beQuiet:
             games.append(game)

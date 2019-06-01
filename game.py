@@ -603,7 +603,7 @@ class Game:
         sys.stdout = OLD_STDOUT
         sys.stderr = OLD_STDERR
 
-    def run(self, total_pacmen, pacman_types_corresponding_indexes, graphics, pacmen, beQuiet):
+    def run(self, total_pacmen, pacman_types_corresponding_indexes, graphics, pacmen, beQuiet, is_training):
         """
         Main control loop for game play.
         """
@@ -645,7 +645,7 @@ class Game:
                         self.unmute()
                         return
                 else:
-                    agent.registerInitialState(self.state.deepCopy(), i, type(agent).__name__, pacman_types_corresponding_indexes, graphics)
+                    agent.registerInitialState(self.state.deepCopy(), i, type(agent).__name__, pacman_types_corresponding_indexes, graphics, is_training)
                 # TODO: could this exceed the total time
                 self.unmute()
 

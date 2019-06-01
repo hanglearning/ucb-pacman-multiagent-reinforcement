@@ -222,10 +222,10 @@ class ReinforcementAgent(ValueEstimationAgent):
             else:
                 pacman_type_index += 1
 
-    def registerInitialState(self, state, i, agentType, pacman_types_corresponding_indexes, graphics):
+    def registerInitialState(self, state, i, agentType, pacman_types_corresponding_indexes, graphics, is_training):
         self.startEpisode()
 
-        if self.episodesSoFar == 0 and self.hasStarted == False:
+        if self.episodesSoFar == 0 and self.hasStarted == False and is_training == True:
             print('Beginning %d episodes of Training on %s agent index %d' % (self.numTraining, agentType, i), end = "")
             self.hasStarted = True
 
