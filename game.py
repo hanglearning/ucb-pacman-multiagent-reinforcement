@@ -414,6 +414,8 @@ class GameStateData:
         self._lose = False
         self._win = False
         self.scoreChange = 0
+        # mark if there's dead pacman in the current game state
+        self.deadPacmanIndex = None
 
     def deepCopy(self):
         state = GameStateData(self)
@@ -601,7 +603,7 @@ class Game:
         sys.stdout = OLD_STDOUT
         sys.stderr = OLD_STDERR
 
-    def run(self, total_pacmen, pacman_types_corresponding_indexes, graphics, pacmen):
+    def run(self, total_pacmen, pacman_types_corresponding_indexes, graphics, pacmen, beQuiet):
         """
         Main control loop for game play.
         """
@@ -653,11 +655,12 @@ class Game:
         while not self.gameOver:
             # Fetch the next agent
             agent = self.agents[agentIndex]
-            # if this is a dead pacman, skip load it (ghost isDead always False)
-            if agent.isDead == True:
-                # Next agent
-                agentIndex = (agentIndex + 1) % numAgents
-                continue
+            # if this is a dead pacman, skip loading it
+            if agent.isPacman == True:
+                if agent.isDead == True:
+                    # Next agent
+                    agentIndex = (agentIndex + 1) % numAgents
+                    continue
             move_time = 0
             skip_action = False
             # Generate an observation of the state
@@ -751,28 +754,35 @@ class Game:
             else:
                 self.state = self.state.generateSuccessor(agentIndex, action, total_pacmen, pacmen)
 
-            # Change the display
-            self.display.update(self.state.data, total_pacmen)
-            ###idx = agentIndex - agentIndex % 2 + 1
-            ###self.display.update( self.state.makeObservation(idx).data )
-
-            # Allow for game specific conditions (winning, losing, etc.)
-            self.rules.process(self.state, self)
-            # check if this agent is dead(only if it's a pacman)
-            if agent.isDead == True:
+            # check if there's dead pacman in the current round
+            deadPacman = None
+            deadPacmanIndex = None
+            if self.state.data.deadPacmanIndex != None:
                 # inform this learning agent of the game result
-                if "final" in dir(agent):
+                deadPacmanIndex = self.state.data.deadPacmanIndex
+                deadPacman = pacmen[deadPacmanIndex]
+                if "final" in dir(deadPacman):
                     try:
-                        self.mute(agentIndex)
-                        agent.final(self.state, total_pacmen, agentIndex)
-                        print(f"Pacman {agentIndex} dies!")
+                        self.mute(deadPacmanIndex)
+                        deadPacman.final(self.state, total_pacmen, deadPacmanIndex, beQuiet)
                         self.unmute()
                     except Exception as data:
                         if not self.catchExceptions:
                             raise
-                        self._agentCrash(agentIndex)
+                        self._agentCrash(deadPacmanIndex)
                         self.unmute()
                         return
+                self.state.deadPacmanIndex = None                
+            
+            # Allow for game specific conditions (winning, losing, etc.)
+            self.rules.process(self.state, self)
+
+            # Change the display
+            # now also remove the dead pacman from the screen
+            self.display.update(self.state.data, total_pacmen, agent, agentIndex, deadPacman, deadPacmanIndex)
+            ###idx = agentIndex - agentIndex % 2 + 1
+            ###self.display.update( self.state.makeObservation(idx).data )
+
             # Track progress
             if agentIndex == numAgents + 1:
                 self.numMoves += 1
@@ -784,7 +794,7 @@ class Game:
         
         # Only used for ghosts after changing to end the game iff all pacmen die
         for agentIndex, agent in enumerate(self.agents):
-            if agent.isDead == False:
+            if agent.isPacman == False:
                 if "final" in dir(agent):
                     try:
                         self.mute(agentIndex)

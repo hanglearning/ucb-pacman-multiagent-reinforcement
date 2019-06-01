@@ -225,9 +225,9 @@ class ReinforcementAgent(ValueEstimationAgent):
     def registerInitialState(self, state, i, agentType, pacman_types_corresponding_indexes, graphics):
         self.startEpisode()
 
-        if self.episodesSoFar == 0 and self.hasStart == False:
+        if self.episodesSoFar == 0 and self.hasStarted == False:
             print('Beginning %d episodes of Training on %s agent index %d' % (self.numTraining, agentType, i), end = "")
-            self.hasStart = True
+            self.hasStarted = True
 
             if graphics:
                 # hard copy from graphicsDisplay.py
@@ -238,10 +238,12 @@ class ReinforcementAgent(ValueEstimationAgent):
             else:
                 print("")
 
-    def final(self, state, total_pacmen, agentIndex):
+    def final(self, state, total_pacmen, agentIndex, beQuiet):
         """
           Called by Pacman game at the terminal state
         """
+        if beQuiet:
+            print(f"Pacman {agentIndex} dies!")
         deltaReward = state.getScore() - self.lastState.getScore()
         self.observeTransition(self.lastState, self.lastAction, state, deltaReward, total_pacmen, agentIndex)
         self.stopEpisode()
@@ -274,5 +276,5 @@ class ReinforcementAgent(ValueEstimationAgent):
             self.episodeStartTime = time.time()
 
         if self.episodesSoFar == self.numTraining:
-            msg = 'Training Done (turning off epsilon and alpha)'
+            msg = f'Training for pacman {agentIndex} Done (turning off epsilon and alpha)'
             print('%s\n%s' % (msg,'-' * len(msg)))

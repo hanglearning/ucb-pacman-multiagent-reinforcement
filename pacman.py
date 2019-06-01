@@ -312,7 +312,7 @@ class ClassicGameRules:
 
     def lose(self, state, game):
         if not self.quiet:
-            print("Pacman died! Score: %d" % state.data.score)
+            print("All Pacmen Die! Score: %d" % state.data.score)
         game.gameOver = True
 
     def getProgress(self, game):
@@ -465,9 +465,13 @@ class GhostRules:
             ghostPosition = ghostState.configuration.getPosition()
             # iterate over pacmen
             for pacmanIndex in range(len(pacmanPositions)):
-                pacmanPosition = pacmanPositions[pacmanIndex]
-                if GhostRules.canKill(pacmanPosition, ghostPosition):
-                    GhostRules.collide(state, ghostState, ghostIndex, pacmanIndex, pacmenAgents, total_pacmen)
+                # used for textDisplay(textDisplay has no machinism to remove a pacman after it dies)
+                if pacmenAgents[pacmanIndex].isDead == False:
+                    pacmanPosition = pacmanPositions[pacmanIndex]
+                    if GhostRules.canKill(pacmanPosition, ghostPosition):
+                        GhostRules.collide(state, ghostState, ghostIndex, pacmanIndex, pacmenAgents, total_pacmen)
+                else:
+                    continue
     checkDeath = staticmethod(checkDeath)
 
     def checkAllPacmenDie(total_pacmen, pacmenAgents):
@@ -494,6 +498,7 @@ class GhostRules:
                 # mark this Pacman as dead
                 deadPacman = pacmenAgents[pacmanIndex]
                 deadPacman.isDead = True
+                state.data.deadPacmanIndex = pacmanIndex
                 # check if all pacmen die
                 isAllPacmenDie = GhostRules.checkAllPacmenDie(total_pacmen, pacmenAgents)
                 if isAllPacmenDie == True:
@@ -804,7 +809,7 @@ def runGames(layout, pacmen, ghosts, display, numGames, record, total_pacmen, pa
 
         game = rules.newGame(layout, pacmen, ghosts,
                              gameDisplay, beQuiet, catchExceptions)
-        game.run(total_pacmen, pacmen_types_corresponding_indexes, graphics, pacmen)
+        game.run(total_pacmen, pacmen_types_corresponding_indexes, graphics, pacmen, beQuiet)
                 
         if not beQuiet:
             games.append(game)
