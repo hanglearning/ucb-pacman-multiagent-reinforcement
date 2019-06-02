@@ -2,7 +2,7 @@
 
 Hang Chen, Ruiqi Wang
 
-## Introduce
+## Introduction
 
 This repository is a final project for CISC889 Multi-Agent Reinforcement Learning (MARL). Base on the video game Mr. Pac-Man framework from CS188 UCB, we are going to design a strategy to apply multiple Pacman agents to eat pellets in the maze. To get a higher score, Pacman should eat all pellets as quickly as possible while avoid being eaten by the ghosts.
 
