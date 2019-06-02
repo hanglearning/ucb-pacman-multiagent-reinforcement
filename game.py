@@ -603,7 +603,7 @@ class Game:
         sys.stdout = OLD_STDOUT
         sys.stderr = OLD_STDERR
 
-    def run(self, total_pacmen, pacman_types_corresponding_indexes, graphics, pacmen, beQuiet, is_training):
+    def run(self, total_pacmen, pacman_types_corresponding_indexes, graphics, pacmen, stillTraining, is_training, numGames, evalGraphics, currentRound, numTraining):
         """
         Main control loop for game play.
         """
@@ -645,12 +645,15 @@ class Game:
                         self.unmute()
                         return
                 else:
-                    agent.registerInitialState(self.state.deepCopy(), i, type(agent).__name__, pacman_types_corresponding_indexes, graphics, is_training)
+                    agent.registerInitialState(self.state.deepCopy(), i, type(agent).__name__, pacman_types_corresponding_indexes, graphics, is_training, evalGraphics, numGames)
                 # TODO: could this exceed the total time
                 self.unmute()
 
         agentIndex = self.startingIndex
         numAgents = len(self.agents)
+
+        if graphics or evalGraphics:
+            self.display.updateEpochInfo(currentRound, numTraining)
 
         while not self.gameOver:
             # Fetch the next agent
@@ -683,7 +686,7 @@ class Game:
                         return
                 else:
                     observation = agent.observationFunction(
-                        self.state.deepCopy(), total_pacmen, agentIndex)
+                        self.state.deepCopy(), total_pacmen, agentIndex, stillTraining)
                 self.unmute()
             else:
                 observation = self.state.deepCopy()
@@ -764,7 +767,8 @@ class Game:
                 if "final" in dir(deadPacman):
                     try:
                         self.mute(deadPacmanIndex)
-                        deadPacman.final(self.state, total_pacmen, deadPacmanIndex, beQuiet)
+                        forceFinish = False
+                        deadPacman.final(self.state, total_pacmen, deadPacmanIndex, stillTraining, forceFinish)
                         self.unmute()
                     except Exception as data:
                         if not self.catchExceptions:
@@ -774,12 +778,13 @@ class Game:
                         return
                 self.state.deadPacmanIndex = None                
             
+
             # Allow for game specific conditions (winning, losing, etc.)
             self.rules.process(self.state, self)
 
             # Change the display
             # now also remove the dead pacman from the screen
-            self.display.update(self.state.data, total_pacmen, agent, agentIndex, deadPacman, deadPacmanIndex)
+            self.display.update(self.state.data, total_pacmen, agent, agentIndex, deadPacman, deadPacmanIndex, currentRound, numTraining)
             ###idx = agentIndex - agentIndex % 2 + 1
             ###self.display.update( self.state.makeObservation(idx).data )
 
@@ -808,4 +813,12 @@ class Game:
                         return
             else:
                 continue
+        
+        # if already reach to the end of training episodes, finish training for those Pacmen who didn't get a chance to be trained(usually this happs if -x too small)
+        if currentRound == numTraining:
+            for pacman in pacmen:
+                if pacman.hasFinishedTraining == False:
+                    forceFinish = True
+                    pacman.final(self.state, total_pacmen, pacman.index, stillTraining, forceFinish)
+
         self.display.finish()

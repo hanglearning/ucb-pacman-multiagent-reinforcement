@@ -53,6 +53,7 @@ import time
 import random
 import os
 import warnings
+from collections import OrderedDict
 
 ###################################################
 # YOUR INTERFACE TO THE PACMAN WORLD: A GameState #
@@ -594,14 +595,18 @@ def readCommand(argv):
                       help='Turns on exception handling and timeouts during games', default=False)
     parser.add_option('--timeout', dest='timeout', type='int',
                       help=default('Maximum length of time an agent can spend computing in a single game'), default=30)
-    parser.add_option('--graphics',
-                    dest = 'graphics',
+    parser.add_option('--trainingGraphics',
+                    dest = 'trainingGraphics',
                     action = 'store_true',
-                    help = default('Display graphics for pacman games.'), default=False)
-    parser.add_option('--graphicsUpdateFrequency',
-                    dest = 'graphicsUpdateFrequency',
+                    help = default('Display graphics during training for pacman games.'), default=False)
+    parser.add_option('--trainingGraphicsUpdateFrequency',
+                    dest = 'trainingGraphicsUpdateFrequency',
                     type = 'int',
-                    help = default('Set graphics update frequency for the game board if graphics is set to True.'), default=None)
+                    help = default('Set graphics update frequency for the game board if trainingGraphics is set to True.'), default=None)
+    parser.add_option('--evalGraphics',
+                    dest = 'evalGraphics',
+                    action = 'store_true',
+                    help = default('Display graphics during evaluation for pacman games.'), default=False)
 
     options, otherjunk = parser.parse_args(argv)
     if len(otherjunk) != 0:
@@ -684,8 +689,10 @@ def readCommand(argv):
     args['catchExceptions'] = options.catchExceptions
     args['timeout'] = options.timeout
 
-    args['graphics'] = options.graphics
-    args['graphicsUpdateFrequency'] = options.graphicsUpdateFrequency
+    args['graphics'] = options.trainingGraphics
+    args['graphicsUpdateFrequency'] = options.trainingGraphicsUpdateFrequency
+    
+    args['evalGraphics'] = options.evalGraphics
 
     # Special case: recorded games don't use the runGames method or args structure
     if options.gameToReplay != None:
@@ -755,50 +762,86 @@ def replayGame(layout, actions, display):
     display.finish()
 
 
-def runGames(layout, pacmen, ghosts, display, numGames, record, total_pacmen, pacmen_types_corresponding_indexes, numTraining=0, catchExceptions=False, timeout=30, graphics=False, graphicsUpdateFrequency=None):
+def runGames(layout, pacmen, ghosts, display, numGames, record, total_pacmen, pacmen_types_corresponding_indexes, numTraining=0, catchExceptions=False, timeout=30, graphics=False, graphicsUpdateFrequency=None, evalGraphics=False):
     import __main__
     __main__.__dict__['_display'] = display
 
     rules = ClassicGameRules(timeout)
     games = []
 
-    # Hang - Helper variables to check UI display condition
+    # Helper variables to check UI display condition
     displayEveryRound = False
-    toDisplay = [1]
-    # if graphics and graphicsUpdateFrequency both set, set the above two variables
+    toDisplayTraining = [1]
+    toDisplayEval = []
+
+    # set the above three variables
+    if numGames > numTraining:
+        if evalGraphics == True:
+            print("evalGraphics set, games will be displayed in graphics during evaluation.")
+            toDisplayEval += [i for i in range(numTraining+1, numGames+1)]
+
     if graphicsUpdateFrequency != None:
         if graphics == False:
             # show warning
-            warnings.warn("--graphics is not specified, with graphicsUpdateFrequency value specified.\nGame board will not be displayed.")
+            warningMsg = "WARNING - --trainingGraphics is not specified, with graphicsUpdateFrequency value specified.\nGame board will not be displayed."
+            warningDecoration = len(max(warningMsg.split('\n'), key=len)) * "="
+            print(warningDecoration, '\n' + warningMsg, '\n' + warningDecoration)
         else:
-            if numGames < graphicsUpdateFrequency:
-                warnings.warn("graphicsUpdateFrequency value larger than the number of games. Game board will be displayed every round.")
+            if numTraining < graphicsUpdateFrequency:
+                warningMsg = "WARNING - graphicsUpdateFrequency value larger than the number of training iterations.\nGame board will be displayed every round during training."
+                warningDecoration = len(max(warningMsg.split('\n'), key=len)) * "="
+                print(warningDecoration, '\n' + warningMsg, '\n' + warningDecoration)
                 displayEveryRound = True
             else:
-                displayInterval = int(numGames/graphicsUpdateFrequency)
+                displayInterval = int(numTraining/graphicsUpdateFrequency)
                 for i in range(1, graphicsUpdateFrequency + 1):
-                    toDisplay.append(displayInterval * i)
+                    toDisplayTraining.append(displayInterval * i)
+    else:
+        if graphics == True:
+            warningMsg = "WARNING - graphicsUpdateFrequency value not specified.\nGame board will be displayed every round during training."
+            warningDecoration = len(max(warningMsg.split('\n'), key=len)) * "="
+            print(warningDecoration, '\n' + warningMsg, '\n' + warningDecoration)
+            displayEveryRound = True
+
+    # remove if repeated round number is in the list(happens if -x 2 -n 4 -updateFre 2)
+    toDisplayTraining = list(OrderedDict.fromkeys(toDisplayTraining))
+    toDisplayEval = list(OrderedDict.fromkeys(toDisplayEval))
+
+    is_training = True
+    if numTraining == 0:
+        is_training = False
+        print("No training for Pacmen.\nEvaluating Pacmen only.")
 
     for i in range(1, numGames+1):
-        beQuiet = i < (numTraining+1)
+        stillTraining = i < (numTraining+1)
         
-        if (graphics and (i in toDisplay)) or displayEveryRound:
+        if (graphics and (i in toDisplayTraining)) or displayEveryRound:
             if i == 1:
                 if displayEveryRound:
-                    print("Game starts.")
+                    print("Training starts.")
                 else:
-                    print("Game starts. Round ", end = "")
-                    for roundIter in range(1, graphicsUpdateFrequency):
-                        print(f'{toDisplay[roundIter]}, ', end = "")
-                    print(f"and {toDisplay[graphicsUpdateFrequency]} will be displayed.")
-                    print(f"Game 1 displays.")
+                    print("Training starts. Round ", end = "")
+                    for roundIter in range(graphicsUpdateFrequency):
+                        print(f'{toDisplayTraining[roundIter]}, ', end = "")
+                    try:
+                        print(f"and {toDisplayTraining[graphicsUpdateFrequency]} will be displayed.")
+                    except:
+                        print("will be displayed.")
+                print("Game 1 displays.")
             else:
                 print(f"Game {i} displays.")
             gameDisplay = display
             rules.quiet = False
+        elif (i in toDisplayEval):
+            print(f"Evaluation {i - numTraining} displays.")
+            gameDisplay = display
+            rules.quiet = False
         else:
-             # Suppress output and graphics
-            print(f"Game {i} begins.")
+            # Suppress output and graphics
+            if stillTraining:
+                print(f"Game {i} begins.")
+            else:
+                print(f"Evaluation {i - numTraining} begins.")
             import textDisplay
             gameDisplay = textDisplay.NullGraphics()
             rules.quiet = True
@@ -808,16 +851,11 @@ def runGames(layout, pacmen, ghosts, display, numGames, record, total_pacmen, pa
             pacman.isDead = False if pacman.isDead == True else False
 
         game = rules.newGame(layout, pacmen, ghosts,
-                             gameDisplay, beQuiet, catchExceptions)
-        
-        is_training = True
-        if numTraining == 0:
-            is_training = False
-            print("No training for Pacmen.\nEvaluating begins.")
+                             gameDisplay, stillTraining, catchExceptions)
 
-        game.run(total_pacmen, pacmen_types_corresponding_indexes, graphics, pacmen, beQuiet, is_training)
+        game.run(total_pacmen, pacmen_types_corresponding_indexes, graphics, pacmen, stillTraining, is_training, numGames, evalGraphics, i, numTraining)
                 
-        if not beQuiet:
+        if not stillTraining:
             games.append(game)
 
         if record:

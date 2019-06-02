@@ -45,6 +45,9 @@ class NullGraphics:
 
     def finish(self):
         pass
+    
+    def updateEpochInfo(self):
+        pass
 
 
 class PacmanGraphics:

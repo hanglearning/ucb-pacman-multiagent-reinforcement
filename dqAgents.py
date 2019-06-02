@@ -35,6 +35,7 @@ class PacmanDQAgent(DQAgent):
         self.isDead = False
         self.hasStarted = False
         self.isPacman = True
+        self.hasFinishedTraining = False
         DQAgent.__init__(self, **args)
     
     def getFeature(self, state, action, total_pacmen, agentIndex):
@@ -87,11 +88,12 @@ class PacmanDQAgent(DQAgent):
     def getValue(self, state):
         return self.computeValueFromQValues(state)
     
-    def update(self, state, action, nextState, reward, total_pacmen, agentIndex):
+    def update(self, state, action, nextState, reward, total_pacmen, agentIndex, stillTraining):
         feature = self.getFeature(state, action, total_pacmen, agentIndex)
         target = reward + self.discount * self.computeValueFromQValues(nextState, total_pacmen, agentIndex)
         self.store_trajectory(feature, target)
-        if self.episodesSoFar < self.numTraining:
+        # if self.episodesSoFar < self.numTraining:
+        if stillTraining:
             self.replay()
         else:
             self.dqnet.eval()
@@ -138,10 +140,10 @@ class PacmanDQAgent(DQAgent):
             self.scheduler.step()
         print(">>> agent {} - average loss {} - lr {}".format(self.index, avg_loss/batches/epochs, self.scheduler.get_lr()))
 
-    def final(self, state, total_pacmen, agentIndex, beQuite):
+    def final(self, state, total_pacmen, agentIndex, stillTraining, forceFinish):
         "Called at the end of each game."
         # call the super-class final method
-        DQAgent.final(self, state, total_pacmen, agentIndex, beQuite)
+        DQAgent.final(self, state, total_pacmen, agentIndex, stillTraining, forceFinish)
 
         # did we finish training?
         if self.episodesSoFar == self.numTraining:
