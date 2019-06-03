@@ -114,6 +114,8 @@ class InfoPane:
     def drawPane(self):
         self.scoreText = text(self.toScreen(
             0, 0), self.textColor, "SCORE:    0", "Times", self.fontSize, "bold")
+        self.currentIterationText = text(self.toScreen(
+            self.width - 80, 0), self.textColor, "", "Times", self.fontSize, "bold")
 
     def initializeGhostDistances(self, distances):
         self.ghostDistanceText = []
@@ -131,6 +133,16 @@ class InfoPane:
 
     def updateScore(self, score):
         changeText(self.scoreText, "SCORE: % 4d" % score)
+    
+    def updateEpochInfo(self, currentRound, numTraining):
+        currentProcess = "T"
+        roundToDisplay = currentRound
+        if currentRound < numTraining:
+            pass
+        else:
+            currentProcess = "E"
+            roundToDisplay = currentRound - numTraining
+        changeText(self.currentIterationText, f"{currentProcess} - {roundToDisplay}")
 
     def setTeam(self, isBlue):
         text = "RED TEAM"
@@ -183,7 +195,6 @@ class PacmanGraphics:
     def initialize(self, state, total_pacmen, pacman_types_corresponding_indexes, isBlue=False):
         self.isBlue = isBlue
         self.startGraphics(state)
-
         # self.drawDistributions(state)
         self.distributionImages = None  # Initialized lazily
         self.drawStaticObjects(state)
@@ -249,7 +260,7 @@ class PacmanGraphics:
             self.agentImages[agentIndex] = (newState, image)
         refresh()
 
-    def update(self, newState, total_pacmen, agent, agentIndex, deadPacman, deadPacmanIndex):
+    def update(self, newState, total_pacmen, agent, agentIndex, deadPacman, deadPacmanIndex, currentRound, numTraining):
         agentIndex = newState._agentMoved
         agentState = newState.agentStates[agentIndex]
 
@@ -272,6 +283,9 @@ class PacmanGraphics:
         self.infoPane.updateScore(newState.score)
         if 'ghostDistances' in dir(newState):
             self.infoPane.updateGhostDistances(newState.ghostDistances)
+
+    def updateEpochInfo(self, currentRound, numTraining):
+        self.infoPane.updateEpochInfo(currentRound, numTraining)
 
     def make_window(self, width, height):
         grid_width = (width-1) * self.gridSize

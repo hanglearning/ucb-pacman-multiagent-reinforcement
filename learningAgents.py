@@ -121,7 +121,7 @@ class ReinforcementAgent(ValueEstimationAgent):
         """
         return self.actionFn(state, total_pacmen, agentIndex)
 
-    def observeTransition(self, state,action,nextState,deltaReward, total_pacmen, agentIndex):
+    def observeTransition(self, state,action,nextState,deltaReward, total_pacmen, agentIndex, stillTraining):
         """
             Called by environment to inform agent that a transition has
             been observed. This will result in a call to self.update
@@ -130,7 +130,7 @@ class ReinforcementAgent(ValueEstimationAgent):
             NOTE: Do *not* override or call this function
         """
         self.episodeRewards += deltaReward
-        self.update(state,action,nextState,deltaReward, total_pacmen, agentIndex)
+        self.update(state,action,nextState,deltaReward, total_pacmen, agentIndex, stillTraining)
 
     def startEpisode(self):
         """
@@ -203,14 +203,14 @@ class ReinforcementAgent(ValueEstimationAgent):
     ###################
     # Pacman Specific #
     ###################
-    def observationFunction(self, state, total_pacmen, agentIndex):
+    def observationFunction(self, state, total_pacmen, agentIndex, stillTraining):
         """
             This is where we ended up after our last action.
             The simulation should somehow ensure this is called
         """
         if not self.lastState is None:
             reward = state.getScore() - self.lastState.getScore()
-            self.observeTransition(self.lastState, self.lastAction, state, reward, total_pacmen, agentIndex)
+            self.observeTransition(self.lastState, self.lastAction, state, reward, total_pacmen, agentIndex, stillTraining)
         return state
 
     # helper function to color different type of pacman
@@ -222,14 +222,17 @@ class ReinforcementAgent(ValueEstimationAgent):
             else:
                 pacman_type_index += 1
 
-    def registerInitialState(self, state, i, agentType, pacman_types_corresponding_indexes, graphics):
+    def registerInitialState(self, state, i, agentType, pacman_types_corresponding_indexes, graphics, is_training, evalGraphics, numGames):
         self.startEpisode()
 
+        process = "Training" if is_training == True else "Evaluation"
+        episodes = self.numTraining if is_training == True else numGames
+
         if self.episodesSoFar == 0 and self.hasStarted == False:
-            print('Beginning %d episodes of Training on %s agent index %d' % (self.numTraining, agentType, i), end = "")
+            print('Beginning %d episodes of %s on %s index %d' % (episodes, process, agentType, i), end = "")
             self.hasStarted = True
 
-            if graphics:
+            if graphics or evalGraphics:
                 # hard copy from graphicsDisplay.py
                 pacman_colors = ['Yellow', 'Red', 'Blue', 'Orange', 'Green', 'Purple']
                 # get pacman type index
@@ -238,14 +241,18 @@ class ReinforcementAgent(ValueEstimationAgent):
             else:
                 print("")
 
-    def final(self, state, total_pacmen, agentIndex, beQuiet):
+    def final(self, state, total_pacmen, agentIndex, stillTraining, forceFinish):
         """
           Called by Pacman game at the terminal state
         """
-        if beQuiet:
-            print(f"Pacman {agentIndex} dies!")
+        # stillTraining was originally beQuiet
+        if stillTraining:
+            if forceFinish == False:
+                print(f"Pacman {agentIndex} dies!")
+            else:
+                print(f"Pacman {agentIndex} forced to finish!")
         deltaReward = state.getScore() - self.lastState.getScore()
-        self.observeTransition(self.lastState, self.lastAction, state, deltaReward, total_pacmen, agentIndex)
+        self.observeTransition(self.lastState, self.lastAction, state, deltaReward, total_pacmen, agentIndex, stillTraining)
         self.stopEpisode()
 
         # Make sure we have this var
@@ -276,5 +283,6 @@ class ReinforcementAgent(ValueEstimationAgent):
             self.episodeStartTime = time.time()
 
         if self.episodesSoFar == self.numTraining:
+            self.hasFinishedTraining = True
             msg = f'Training for pacman {agentIndex} Done (turning off epsilon and alpha)'
             print('%s\n%s' % (msg,'-' * len(msg)))

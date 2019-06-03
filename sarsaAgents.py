@@ -34,6 +34,7 @@ class PacmanSarsaAgent(ReinforcementAgent):
         self.isDead = False
         self.hasStarted = False
         self.isPacman = True
+        self.hasFinishedTraining = False
         ReinforcementAgent.__init__(self, **args)
 
 
@@ -87,7 +88,7 @@ class ApproximateSarsaAgent(PacmanSarsaAgent):
     def getQValue(self, state, action, agentIndex, total_pacmen):
         return self.weights * self.featExtractor.getFeatures(state, action, agentIndex, total_pacmen)
 
-    def update(self, state, action, nextState, reward, total_pacmen, agentIndex):
+    def update(self, state, action, nextState, reward, total_pacmen, agentIndex, stillTraining):
         nextAction = self.getAction(nextState, total_pacmen, agentIndex)
         if nextAction is None:
             nextQVal = 0.
@@ -101,9 +102,9 @@ class ApproximateSarsaAgent(PacmanSarsaAgent):
                 self.weights[feature_key] = random.uniform(-1.,1.)
             self.weights[feature_key] += self.alpha * difference * features[feature_key]
 
-    def final(self, state, total_pacmen, agentIndex, beQuiet):
+    def final(self, state, total_pacmen, agentIndex, stillTraining, forceFinish):
         "Called at the end of each game."
-        PacmanSarsaAgent.final(self, state, total_pacmen, agentIndex, beQuiet)
+        PacmanSarsaAgent.final(self, state, total_pacmen, agentIndex, stillTraining, forceFinish)
         if self.episodesSoFar == self.numTraining:
             pass
             # print(self.weights)
