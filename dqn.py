@@ -9,9 +9,9 @@ class DQN(nn.Module):
     def __init__(self, n_features=8):
         super(DQN, self).__init__()
         self.fc1 = nn.Linear(n_features, 16)
-        self.fc2 = nn.Linear(16, 8)
-        self.fc3 = nn.Linear(8, 1)
-        self.dropout = nn.Dropout(.2)
+        self.fc2 = nn.Linear(16, 32)
+        self.fc3 = nn.Linear(32, 5)
+        self.dropout = nn.Dropout(.5)
         self.activation = nn.Sigmoid()
         self.criterion = nn.MSELoss()
         nn.init.uniform_(self.fc1.weight)
@@ -31,6 +31,6 @@ class DQN(nn.Module):
         x = self.activation(x)
         x = self.fc2(x)
         x = self.activation(x)
-        # x = self.dropout(x)
-        o = self.fc3(x)
-        return o
+        x = self.dropout(x)
+        x = self.fc3(x)
+        return x

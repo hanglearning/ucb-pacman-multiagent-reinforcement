@@ -11,6 +11,8 @@ import torch
 import torch.cuda
 import torch.optim as optim
 
+inf = 1000000
+
 def createPacmanDQAgent(num_pacmen, agent, start_index, **args):
     return [eval(agent)(index=i, **args) for i in range(start_index, start_index + num_pacmen)]
 
@@ -19,7 +21,7 @@ class DQAgent(ReinforcementAgent):
         ReinforcementAgent.__init__(self, **args)
 
 class PacmanDQAgent(DQAgent):
-    def __init__(self, index, extractor='ComplexExtractor', **args):
+    def __init__(self, index, **args):
         if os.path.exists(f"model_param/dqn_{index}.pt"):
             self.dqnet = torch.load(f"model_param/dqn_{index}.pt")
         else:
@@ -28,8 +30,9 @@ class PacmanDQAgent(DQAgent):
             self.dqnet.cuda()
         self.opti = optim.Adam(self.dqnet.parameters(), lr=.001)
         self.scheduler = optim.lr_scheduler.StepLR(self.opti, 10000, gamma=.1)
-        self.feat_extractor = util.lookup(extractor, globals())()
+        self.feat_extractor = util.lookup('ComplexExtractor', globals())()
         self.action_mapping = {'North':0, 'South':1, 'East':2, 'West':3, 'Stop':4}
+        self.action_mapping_reverse = {0:'North', 1:'South', 2:'East', 3: 'West', 4: 'Stop'}
         self.replay_buffer = []
         self.index = index
         self.isDead = False
@@ -38,37 +41,29 @@ class PacmanDQAgent(DQAgent):
         self.hasFinishedTraining = False
         DQAgent.__init__(self, **args)
     
-    def getFeature(self, state, action, total_pacmen, agentIndex):
-        feature_dict = self.feat_extractor.getFeatures(state, action, total_pacmen, agentIndex)
-        feature_dict["action"] = self.action_mapping[action]
+    def getFeature(self, state, total_pacmen, agentIndex):
+        feature_dict = self.feat_extractor.getFeatures(state, total_pacmen, agentIndex)
         feature = DQN.dict2vec(feature_dict)
         return feature
 
-    def getQValue(self, state, action, total_pacmen, agentIndex):
+    def getQValue(self, state, total_pacmen, agentIndex):
+        feature = torch.from_numpy(self.getFeature(state, total_pacmen, agentIndex))
         if torch.cuda.is_available():
-            feature = torch.from_numpy(self.getFeature(state, action, total_pacmen, agentIndex)).cuda()
-        else:
-            feature = torch.from_numpy(self.getFeature(state, action, total_pacmen, agentIndex))
-        return self.dqnet(feature).detach().cpu().numpy()[0]
+            feature = feature.cuda()
+        return self.dqnet(feature).cpu().detach().numpy()
     
-    def computeValueFromQValues(self, state, total_pacmen, agentIndex):
-        legalActions = self.getLegalActions(state, total_pacmen, agentIndex)
+    def computeActionValueFromQValues(self, state, total_pacmen, agentIndex):
+        legalActions = [self.action_mapping[act] for act in self.getLegalActions(state, total_pacmen, agentIndex)]
         if legalActions is None or len(legalActions) == 0:
-            return 0.
-        return max([self.getQValue(state, action, total_pacmen, agentIndex) for action in legalActions])
-    
-    def computeActionFromQValues(self, state, total_pacmen, agentIndex):
-        legalActions = self.getLegalActions(state, total_pacmen, agentIndex)
-        action = None
-        if legalActions is None or len(legalActions) == 0:
-            return action
-        maxQ = -1000000
-        for act in legalActions:
-            q = self.getQValue(state, act, total_pacmen, agentIndex)
-            if maxQ < q:
-                action = act
-                maxQ = q
-        return action
+            return None, 0.
+        q_values = self.getQValue(state, total_pacmen, agentIndex)
+        action_q = -inf
+        for i in range(5):
+            if i not in legalActions:
+                continue
+            action = self.action_mapping_reverse[i]
+            action_q = q_values[i]
+        return action, action_q
     
     def getAction(self, state, total_pacmen, agentIndex):
         legalActions = self.getLegalActions(state, total_pacmen, agentIndex)
@@ -83,31 +78,40 @@ class PacmanDQAgent(DQAgent):
         return action
     
     def getPolicy(self, state, total_pacmen, agentIndex):
-        return self.computeActionFromQValues(state, total_pacmen, agentIndex)
+        return self.computeActionValueFromQValues(state, total_pacmen, agentIndex)[0]
     
-    def getValue(self, state):
-        return self.computeValueFromQValues(state)
+    def getValue(self, state, total_pacmen, agentIndex):
+        return self.computeActionValueFromQValues(state, total_pacmen, agentIndex)[1]
     
     def update(self, state, action, nextState, reward, total_pacmen, agentIndex, stillTraining):
-        feature = self.getFeature(state, action, total_pacmen, agentIndex)
-        target = reward + self.discount * self.computeValueFromQValues(nextState, total_pacmen, agentIndex)
-        self.store_trajectory(feature, target)
+        feature = self.getFeature(state, total_pacmen, agentIndex)
+        target = reward + self.discount * self.computeActionValueFromQValues(nextState, total_pacmen, agentIndex)[1]
+        self.store_trajectory(feature, target, self.action_mapping[action])
         # if self.episodesSoFar < self.numTraining:
         if stillTraining:
             self.replay()
         else:
+            # print("<<<<< eval >>>>>")
             self.dqnet.eval()
     
-    def store_trajectory(self, feature, target):
-        self.replay_buffer.append((feature, target))
+    def store_trajectory(self, feature, target, action):
+        self.replay_buffer.append((feature, target, action))
+    
+    def onehot(self, x, dim=5):
+        n = len(x)
+        _onehot = np.zeros((n,dim))
+        _onehot[:,x] = True
+        print(_onehot)
+        return _onehot.astype(np.bool)
     
     def replay(self):
         n_samples = len(self.replay_buffer)
         x = np.array([pairs[0] for pairs in self.replay_buffer[-min(1000, n_samples):]]).astype(np.float32)
         y = np.array([pairs[1] for pairs in self.replay_buffer[-min(1000, n_samples):]]).astype(np.float32)[:,np.newaxis]
-        self.train(x, y)
+        actions = np.array([pairs[2] for pairs in self.replay_buffer[-min(1000, n_samples):]]).astype(np.long)
+        self.train(x, y, actions)
     
-    def train(self, x, y):
+    def train(self, x, y, actions):
         batch_size = 32
         epochs = 10
         n_samples = x.shape[0]
@@ -123,16 +127,15 @@ class PacmanDQAgent(DQAgent):
             for i in range(int(batches)):
                 start_index = i*batch_size
                 end_index = min(start_index+batch_size, n_samples)
+                batch_x = torch.from_numpy(x[start_index:end_index])
+                batch_y = torch.from_numpy(y[start_index:end_index])     # ...
+                batch_action = actions[start_index:end_index]
                 if torch.cuda.is_available():
-                    batch_x = torch.from_numpy(x[start_index:end_index]).cuda()
-                else:
-                    batch_x = torch.from_numpy(x[start_index:end_index])
-                batch_y = y[start_index:end_index] / 10     # ...
+                    batch_x = batch_x.cuda()
+                    batch_y = batch_y.cuda()
                 outp = self.dqnet(batch_x)
-                if torch.cuda.is_available():
-                    loss = self.dqnet.criterion(outp, torch.from_numpy(batch_y).cuda())
-                else:
-                    loss = self.dqnet.criterion(outp, torch.from_numpy(batch_y))
+                outp = outp[range(end_index-start_index), batch_action].view(-1,1)
+                loss = self.dqnet.criterion(outp, batch_y)
                 self.opti.zero_grad()
                 loss.backward()
                 self.opti.step()

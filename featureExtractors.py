@@ -14,6 +14,7 @@
 
 "Feature extractors for Pacman game states"
 
+import numpy as np
 from game import Directions, Actions
 import util, math
 
@@ -55,7 +56,7 @@ def closestFood(pos, food, walls):
         expanded.add((pos_x, pos_y))
         # if we find a food at this location then exit
         if food[pos_x][pos_y]:
-            return dist
+            return (pos_x, pos_y)
         # otherwise spread out from the location to its neighbours
         nbrs = Actions.getLegalNeighbors((pos_x, pos_y), walls)
         for nbr_x, nbr_y in nbrs:
@@ -72,7 +73,7 @@ def closestCapsule(pos, capsule, walls):
             continue
         expanded.add((pos_x, pos_y))
         if (pos_x, pos_y) in capsule:
-            return dist
+            return (pos_x, pos_y)
         nbrs = Actions.getLegalNeighbors((pos_x, pos_y), walls)
         for nbr_x, nbr_y in nbrs:
             fringe.append((nbr_x, nbr_y, dist+1))
@@ -118,7 +119,7 @@ class SimpleExtractor(FeatureExtractor):
         return features
 
 class ComplexExtractor(FeatureExtractor):
-    def getFeatures(self, state, action, agentIndex, total_pacmen):
+    def getFeatures(self, state, agentIndex, total_pacmen):
         # extract the grid of food and wall locations and get the ghost locations
         food = state.getFood()
         capsule = state.getCapsules()
@@ -128,46 +129,68 @@ class ComplexExtractor(FeatureExtractor):
 
         features = util.Counter()
 
-        # features["bias"] = 10.0
-
         # compute the location of pacman after he takes the action
         x, y = state.getPacmanPosition(agentIndex)
-        dx, dy = Actions.directionToVector(action)
-        next_x, next_y = int(x + dx), int(y + dy)
+        x, y = int(x), int(y)
 
-        dist_ghost = list(map(lambda pos_g: abs(pos_g[0]-next_x)+abs(pos_g[1]-next_y), ghosts))
-        nearest_ghost_dist = min(dist_ghost)
-        for nearest_ghost in range(len(dist_ghost)):
-            if dist_ghost[nearest_ghost] == nearest_ghost_dist:
-                break
-
-        # count the number of ghosts 1-step away
-        features["#-of-ghosts-1-step-away"] = sum((next_x, next_y) in Actions.getLegalNeighbors(g, walls) for g in ghosts)
-        features["#-of-ghosts-1-step-away-edible"] = sum((next_x, next_y) in Actions.getLegalNeighbors(ghosts[i], walls) for i in range(len(ghosts)) if ghosts_state[i].scaredTimer > 0)
-
+        dist_ghost = list(map(lambda pos_g: abs(pos_g[0]-x)+abs(pos_g[1]-y), ghosts))
+        features["#-of-ghosts-1-step-away"] = 0
+        features["#-of-ghosts-3-step-away"] = 0
+        features["#-of-ghosts-5-step-away"] = 0
+        for i, d in enumerate(dist_ghost):
+            if ghosts_state[i].scaredTimer > 0:
+                continue
+            if d == 1:
+                features["#-of-ghosts-1-step-away"] += 1
+            elif d <= 3:
+                features["#-of-ghosts-3-step-away"] += 1
+            elif d <= 5:
+                features["#-of-ghosts-5-step-away"] += 1
+        
         features.divideAll(10.0)
 
-        # if there is no danger of ghosts then add the food feature
-        if not features["#-of-ghosts-1-step-away"] and food[next_x][next_y]:
-            features["eats-food"] = 1.
+        closest_ghost = ghosts[np.argmax(dist_ghost)]
+        if closest_ghost[0] >= x and closest_ghost[1] >= y:
+            features["closest-ghost-direction"] = 1
+        elif closest_ghost[0] < x and closest_ghost[1] >= y:
+            features["closest-ghost-direction"] = 2
+        elif closest_ghost[0] < x and closest_ghost[1] < y:
+            features["closest-ghost-direction"] = 3
         else:
-            features["eats-food"] = 0.
+            features["closest-ghost-direction"] = 4
 
-        features["nearest-ghost-edible"] = 1. if ghosts_state[nearest_ghost].scaredTimer > 0 else 0.
-
-        dist_food = closestFood((next_x, next_y), food, walls)
-        dist_capsule = closestCapsule((next_x, next_y), capsule, walls)
+        closest_food = closestFood((x, y), food, walls)
+        if closest_food is None:
+            features["closest-food-direction"] = 0
+        if closest_food[0] >= x and closest_food[1] >= y:
+            features["closest-food-direction"] = 1
+        elif closest_food[0] < x and closest_food[1] >= y:
+            features["closest-food-direction"] = 2
+        elif closest_food[0] < x and closest_food[1] < y:
+            features["closest-food-direction"] = 3
+        else:
+            features["closest-food-direction"] = 4
         
+        closest_capsule = closestCapsule((x, y), capsule, walls)
+        if closest_capsule is None:
+            features["closest-capsule-direction"] = 0
+        if closest_capsule[0] >= x and closest_capsule[1] >= y:
+            features["closest-capsule-direction"] = 1
+        elif closest_capsule[0] < x and closest_capsule[1] >= y:
+            features["closest-capsule-direction"] = 2
+        elif closest_capsule[0] < x and closest_capsule[1] < y:
+            features["closest-capsule-direction"] = 3
+        else:
+            features["closest-capsule-direction"] = 4
+
         features["closest-food"] = 1.
         features["closest-capsule"] = 1.
+        dist_food = abs(closest_food[0]-x)+abs(closest_food[1]-y)
+        dist_capsule = abs(closest_capsule[0]-x)+abs(closest_capsule[1]-y)
 
-        features["dst-from-nearest-ghost"] = float(nearest_ghost_dist) / (walls.width + walls.height)
         if dist_food is not None:
-            # make the distance a number less than one otherwise the update
-            # will diverge wildly
             features["closest-food"] = float(dist_food) / (walls.width + walls.height)
         if dist_capsule is not None:
             features["closest-capsule"] = float(dist_capsule) / (walls.width + walls.height)
-        # print(features)
         return features
         
