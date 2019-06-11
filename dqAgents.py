@@ -91,18 +91,10 @@ class PacmanDQAgent(DQAgent):
         if stillTraining:
             self.replay()
         else:
-            # print("<<<<< eval >>>>>")
             self.dqnet.eval()
     
     def store_trajectory(self, feature, target, action):
         self.replay_buffer.append((feature, target, action))
-    
-    def onehot(self, x, dim=5):
-        n = len(x)
-        _onehot = np.zeros((n,dim))
-        _onehot[:,x] = True
-        print(_onehot)
-        return _onehot.astype(np.bool)
     
     def replay(self):
         n_samples = len(self.replay_buffer)
@@ -141,7 +133,7 @@ class PacmanDQAgent(DQAgent):
                 self.opti.step()
                 avg_loss += loss.detach().cpu().numpy()
             self.scheduler.step()
-        print(">>> agent {} - average loss {} - lr {}".format(self.index, avg_loss/batches/epochs, self.scheduler.get_lr()))
+        # print(">>> agent {} - average loss {} - lr {}".format(self.index, avg_loss/batches/epochs, self.scheduler.get_lr()))
 
     def final(self, state, total_pacmen, agentIndex, stillTraining, forceFinish):
         "Called at the end of each game."
