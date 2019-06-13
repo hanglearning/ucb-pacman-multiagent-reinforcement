@@ -159,6 +159,9 @@ def tryToLoad(fullname, total_pacmen, filename):
         return None
     f = open(fullname)    
     entire_layout = list(f.read())
+    # solution for 1 pacman layout
+    # Reference - https://stackoverflow.com/questions/16374425/python-read-function-returns-empty-string
+    f.seek(0)
     # layout_lines = entire_layout.count('\n')
     total_pacmen_positions_provided = entire_layout.count('P')
     if total_pacmen == total_pacmen_positions_provided:
