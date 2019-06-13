@@ -160,7 +160,6 @@ def tryToLoad(fullname, total_pacmen, filename):
     f = open(fullname)    
     entire_layout = list(f.read())
     # solution for 1 pacman layout
-    # Reference - https://stackoverflow.com/questions/16374425/python-read-function-returns-empty-string
     f.seek(0)
     # layout_lines = entire_layout.count('\n')
     total_pacmen_positions_provided = entire_layout.count('P')
@@ -176,8 +175,6 @@ def tryToLoad(fullname, total_pacmen, filename):
             # process the layout with the specified number of pacmen
             if total_pacmen < entire_layout.count('P'):
                 extra_positions = entire_layout.count('P') - total_pacmen
-                # replace extra Ps with food dot .
-                # Reference https://stackoverflow.com/questions/2294493/how-to-get-the-position-of-a-character-in-python
                 P_positions = [pos for pos, char in enumerate(entire_layout) if char == 'P']
                 for i in range(extra_positions):
                     to_be_removed = random.choice(P_positions)
@@ -188,12 +185,8 @@ def tryToLoad(fullname, total_pacmen, filename):
                 dot_positions = [pos for pos, char in enumerate(entire_layout) if char == '.']
                 for i in range(extra_positions):
                     to_be_removed = random.choice(dot_positions)
-                    # 'str' object does not support item assignment https://stackoverflow.com/questions/1228299/change-one-character-in-a-string
                     entire_layout[to_be_removed] = 'P'
-            # create the new layout file
-            # Reference https://stackoverflow.com/questions/273192/how-can-i-safely-create-a-nested-directory-in-python
             os.makedirs("layouts/Multi_Pacmen_Layouts", exist_ok=True)
-            # Reference https://stackoverflow.com/questions/10607688/how-to-create-a-file-name-with-the-current-date-time-in-python
             import datetime
             new_filename = datetime.datetime.now().strftime(f"{filename}_%Y%m%d-%H%M%S")
             with open(f"layouts/Multi_Pacmen_Layouts/{new_filename}", "w") as new_layout:
