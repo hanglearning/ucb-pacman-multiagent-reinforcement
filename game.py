@@ -755,7 +755,7 @@ class Game:
                     self.unmute()
                     return
             else:
-                self.state = self.state.generateSuccessor(agentIndex, action, total_pacmen, pacmen)
+                self.state = self.state.generateSuccessor(agentIndex, action, total_pacmen, pacmen, agent)
 
             # check if there's dead pacman in the current round
             deadPacman = None

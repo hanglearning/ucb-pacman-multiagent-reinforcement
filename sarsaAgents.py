@@ -35,6 +35,7 @@ class PacmanSarsaAgent(ReinforcementAgent):
         self.hasStarted = False
         self.isPacman = True
         self.hasFinishedTraining = False
+        self.score = 0
         ReinforcementAgent.__init__(self, **args)
 
 

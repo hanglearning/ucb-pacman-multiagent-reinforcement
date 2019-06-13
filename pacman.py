@@ -101,7 +101,7 @@ class GameState:
         else:
             return GhostRules.getLegalActions(self, agentIndex, total_pacmen)
 
-    def generateSuccessor(self, agentIndex, action, total_pacmen, pacmen):
+    def generateSuccessor(self, agentIndex, action, total_pacmen, pacmen, agent):
         """
         Returns the successor state after the specified agent takes the action.
         """
@@ -115,13 +115,14 @@ class GameState:
         # Let agent's logic deal with its action's effects on the board
         if agentIndex < total_pacmen:  # Pacman is moving
             state.data._eaten = [False for i in range(state.getNumAgents())]
-            PacmanRules.applyAction(state, action, agentIndex)
+            PacmanRules.applyAction(state, action, agentIndex, agent)
         else:                # A ghost is moving
             GhostRules.applyAction(state, action, agentIndex, total_pacmen)
 
         # Time passes
         if agentIndex < total_pacmen:
-            state.data.scoreChange += -TIME_PENALTY  # Penalty for waiting around
+            # state.data.scoreChange += -TIME_PENALTY  # Penalty for waiting around
+            agent.score += -TIME_PENALTY
         else:
             GhostRules.decrementTimer(state.data.agentStates[agentIndex])
 
@@ -355,7 +356,7 @@ class PacmanRules:
         return Actions.getPossibleActions(state.getPacmanState(agentIndex).configuration, state.data.layout.walls)
     getLegalActions = staticmethod(getLegalActions)
 
-    def applyAction(state, action, agentIndex):
+    def applyAction(state, action, agentIndex, agent):
         """
         Edits the state to reflect the results of the action.
         """
@@ -375,25 +376,28 @@ class PacmanRules:
         nearest = nearestPoint(next)
         if manhattanDistance(nearest, next) <= 0.5:
             # Remove food
-            PacmanRules.consume(nearest, state)
+            PacmanRules.consume(nearest, state, agent)
     applyAction = staticmethod(applyAction)
 
-    def consume(position, state):
+    def consume(position, state, agent):
         x, y = position
         # Eat food
         if state.data.food[x][y]:
-            state.data.scoreChange += 10
+            # state.data.scoreChange += 10
+            agent.score += 10
             state.data.food = state.data.food.copy()
             state.data.food[x][y] = False
             state.data._foodEaten = position
             # TODO: cache numFood?
             numFood = state.getNumFood()
             if numFood == 0 and not state.data._lose:
-                state.data.scoreChange += 500
+                # state.data.scoreChange += 500
+                agent.score += 500
                 state.data._win = True
         # Eat capsule
         if(position in state.getCapsules()):
-            state.data.scoreChange += 11
+            # state.data.scoreChange += 11
+            agent.score += 11
             state.data.capsules.remove(position)
             state.data._capsuleEaten = position
             # Reset all ghosts' scared timers
@@ -488,14 +492,16 @@ class GhostRules:
 
     def collide(state, ghostState, ghostIndex, pacmanIndex, pacmenAgents, total_pacmen):
         if ghostState.scaredTimer > 0:
-            state.data.scoreChange += 200
+            # state.data.scoreChange += 200
+            pacmenAgents[pacmanIndex].score += 200
             GhostRules.placeGhost(state, ghostState)
             ghostState.scaredTimer = 0
             # Added for first-person
             state.data._eaten[ghostIndex] = True
         else:
             if not state.data._win:
-                state.data.scoreChange -= 500
+                # state.data.scoreChange -= 500
+                pacmenAgents[pacmanIndex].score -= 500
                 # mark this Pacman as dead
                 deadPacman = pacmenAgents[pacmanIndex]
                 deadPacman.isDead = True
