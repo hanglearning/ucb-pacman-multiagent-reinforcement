@@ -39,7 +39,7 @@ class PacmanDQAgent(DQAgent):
         self.hasStarted = False
         self.isPacman = True
         self.hasFinishedTraining = False
-        self.score = 0
+        self.scoreChange = 0
         DQAgent.__init__(self, **args)
     
     def getFeature(self, state, total_pacmen, agentIndex):
