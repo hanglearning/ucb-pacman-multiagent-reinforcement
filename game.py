@@ -546,7 +546,7 @@ try:
 except:
     _BOINC_ENABLED = False
 
-
+pacmenScoreChanges = dict()
 class Game:
     """
     The Game manages the control flow, soliciting actions from agents.
@@ -664,6 +664,7 @@ class Game:
                     # Next agent
                     agentIndex = (agentIndex + 1) % numAgents
                     continue
+                agent.scoreChange = 0
             move_time = 0
             skip_action = False
             # Generate an observation of the state
@@ -796,7 +797,11 @@ class Game:
 
             if _BOINC_ENABLED:
                 boinc.set_fraction_done(self.getProgress())
-        
+
+            # update pacman scoreChange
+            if agent.isPacman == True:
+                pacmenScoreChanges[agentIndex] = agent.scoreChange
+
         # Only used for ghosts after changing to end the game iff all pacmen die
         for agentIndex, agent in enumerate(self.agents):
             if agent.isPacman == False:

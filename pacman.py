@@ -122,7 +122,7 @@ class GameState:
         # Time passes
         if agentIndex < total_pacmen:
             # state.data.scoreChange += -TIME_PENALTY  # Penalty for waiting around
-            agent.scoreChange = -TIME_PENALTY
+            agent.scoreChange += -TIME_PENALTY
         else:
             GhostRules.decrementTimer(state.data.agentStates[agentIndex])
 
@@ -384,7 +384,7 @@ class PacmanRules:
         # Eat food
         if state.data.food[x][y]:
             # state.data.scoreChange += 10
-            agent.scoreChange = 10
+            agent.scoreChange += 10
             state.data.food = state.data.food.copy()
             state.data.food[x][y] = False
             state.data._foodEaten = position
@@ -392,12 +392,12 @@ class PacmanRules:
             numFood = state.getNumFood()
             if numFood == 0 and not state.data._lose:
                 # state.data.scoreChange += 500
-                agent.scoreChange = 500
+                agent.scoreChange += 500
                 state.data._win = True
         # Eat capsule
         if(position in state.getCapsules()):
             # state.data.scoreChange += 11
-            agent.scoreChange = 11
+            agent.scoreChange += 11
             state.data.capsules.remove(position)
             state.data._capsuleEaten = position
             # Reset all ghosts' scared timers
@@ -493,7 +493,7 @@ class GhostRules:
     def collide(state, ghostState, ghostIndex, pacmanIndex, pacmenAgents, total_pacmen):
         if ghostState.scaredTimer > 0:
             # state.data.scoreChange += 200
-            pacmenAgents[pacmanIndex].scoreChange = 200
+            pacmenAgents[pacmanIndex].scoreChange += 200
             GhostRules.placeGhost(state, ghostState)
             ghostState.scaredTimer = 0
             # Added for first-person
@@ -501,7 +501,7 @@ class GhostRules:
         else:
             if not state.data._win:
                 # state.data.scoreChange -= 500
-                pacmenAgents[pacmanIndex].scoreChange = -500
+                pacmenAgents[pacmanIndex].scoreChange -= 500
                 # mark this Pacman as dead
                 deadPacman = pacmenAgents[pacmanIndex]
                 deadPacman.isDead = True
