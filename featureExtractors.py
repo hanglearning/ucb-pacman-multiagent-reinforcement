@@ -159,10 +159,12 @@ class ComplexExtractor(FeatureExtractor):
         else:
             features["closest-ghost-direction"] = 4
 
+        features["closest-food"] = 1.
+        dist_food = None
         closest_food = closestFood((x, y), food, walls)
         if closest_food is None:
             features["closest-food-direction"] = 0
-        if closest_food[0] >= x and closest_food[1] >= y:
+        elif closest_food[0] >= x and closest_food[1] >= y:
             features["closest-food-direction"] = 1
         elif closest_food[0] < x and closest_food[1] >= y:
             features["closest-food-direction"] = 2
@@ -170,11 +172,15 @@ class ComplexExtractor(FeatureExtractor):
             features["closest-food-direction"] = 3
         else:
             features["closest-food-direction"] = 4
+        if closest_food is not None:
+            dist_food = abs(closest_food[0]-x)+abs(closest_food[1]-y)
         
+        features["closest-capsule"] = 1.
+        dist_capsule = None
         closest_capsule = closestCapsule((x, y), capsule, walls)
         if closest_capsule is None:
             features["closest-capsule-direction"] = 0
-        if closest_capsule[0] >= x and closest_capsule[1] >= y:
+        elif closest_capsule[0] >= x and closest_capsule[1] >= y:
             features["closest-capsule-direction"] = 1
         elif closest_capsule[0] < x and closest_capsule[1] >= y:
             features["closest-capsule-direction"] = 2
@@ -182,11 +188,8 @@ class ComplexExtractor(FeatureExtractor):
             features["closest-capsule-direction"] = 3
         else:
             features["closest-capsule-direction"] = 4
-
-        features["closest-food"] = 1.
-        features["closest-capsule"] = 1.
-        dist_food = abs(closest_food[0]-x)+abs(closest_food[1]-y)
-        dist_capsule = abs(closest_capsule[0]-x)+abs(closest_capsule[1]-y)
+        if closest_capsule is not None:
+            dist_capsule = abs(closest_capsule[0]-x)+abs(closest_capsule[1]-y)
 
         if dist_food is not None:
             features["closest-food"] = float(dist_food) / (walls.width + walls.height)
