@@ -134,6 +134,7 @@ class ComplexExtractor(FeatureExtractor):
         x, y = int(x), int(y)
 
         dist_ghost = list(map(lambda pos_g: abs(pos_g[0]-x)+abs(pos_g[1]-y), ghosts))
+        features["closest-ghost"] = min(dist_ghost)
         features["#-of-ghosts-1-step-away"] = 0
         features["#-of-ghosts-3-step-away"] = 0
         features["#-of-ghosts-5-step-away"] = 0

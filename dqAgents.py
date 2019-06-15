@@ -25,10 +25,10 @@ class PacmanDQAgent(DQAgent):
         if os.path.exists(f"model_param/dqn_{index}.pt"):
             self.dqnet = torch.load(f"model_param/dqn_{index}.pt")
         else:
-            self.dqnet = DQN(n_features=8)
+            self.dqnet = DQN(n_features=9)
         if torch.cuda.is_available():
             self.dqnet.cuda()
-        self.opti = optim.Adam(self.dqnet.parameters(), lr=.001)
+        self.opti = optim.Adam(self.dqnet.parameters(), lr=.01)
         self.scheduler = optim.lr_scheduler.StepLR(self.opti, 10000, gamma=.1)
         self.feat_extractor = util.lookup('ComplexExtractor', globals())()
         self.action_mapping = {'North':0, 'South':1, 'East':2, 'West':3, 'Stop':4}
@@ -62,8 +62,9 @@ class PacmanDQAgent(DQAgent):
         for i in range(5):
             if i not in legalActions:
                 continue
-            action = self.action_mapping_reverse[i]
-            action_q = q_values[i]
+            if action_q < q_values[i]:
+                action = self.action_mapping_reverse[i]
+                action_q = q_values[i]
         return action, action_q
     
     def getAction(self, state, total_pacmen, agentIndex):
@@ -148,5 +149,5 @@ class PacmanDQAgent(DQAgent):
             "*** YOUR CODE HERE ***"
             if not os.path.exists('model_param'):
                 os.makedirs('model_param')
-            torch.save(self.dqnet, f"model_param/dqn_{agentIndex}.pt")
+            # torch.save(self.dqnet, f"model_param/dqn_{agentIndex}.pt")
             print(f"DQN model for pacman {agentIndex} saved at 'model_param/dqn_{agentIndex}.pt'")
