@@ -133,24 +133,22 @@ class ComplexExtractor(FeatureExtractor):
         x, y = state.getPacmanPosition(agentIndex)
         x, y = int(x), int(y)
 
-        dist_ghost = list(map(lambda pos_g: abs(pos_g[0]-x)+abs(pos_g[1]-y), ghosts))
-        features["closest-ghost"] = min(dist_ghost)
-        features["#-of-ghosts-1-step-away"] = 0
-        features["#-of-ghosts-3-step-away"] = 0
+        dist_ghost = list(map(lambda pos_g: abs(pos_g[0]-x)+abs(pos_g[1]-y), ghosts[:-1]))
+        features["#-of-ghosts-2-step-away"] = 0
         features["#-of-ghosts-5-step-away"] = 0
         for i, d in enumerate(dist_ghost):
             if ghosts_state[i].scaredTimer > 0:
                 continue
-            if d == 1:
-                features["#-of-ghosts-1-step-away"] += 1
-            elif d <= 3:
-                features["#-of-ghosts-3-step-away"] += 1
+            if d == 2:
+                features["#-of-ghosts-2-step-away"] += 1
             elif d <= 5:
                 features["#-of-ghosts-5-step-away"] += 1
         
         features.divideAll(10.0)
 
+        features["closest-ghost"] = min(dist_ghost)/(walls.width + walls.height)
         closest_ghost = ghosts[np.argmax(dist_ghost)]
+        features["closest-ghost-status"] = 1. if ghosts_state[np.argmax(dist_ghost)].scaredTimer > 0 else 0.
         if closest_ghost[0] >= x and closest_ghost[1] >= y:
             features["closest-ghost-direction"] = 1
         elif closest_ghost[0] < x and closest_ghost[1] >= y:
@@ -191,6 +189,7 @@ class ComplexExtractor(FeatureExtractor):
             features["closest-capsule-direction"] = 4
         if closest_capsule is not None:
             dist_capsule = abs(closest_capsule[0]-x)+abs(closest_capsule[1]-y)
+
 
         if dist_food is not None:
             features["closest-food"] = float(dist_food) / (walls.width + walls.height)

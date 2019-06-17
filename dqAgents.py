@@ -10,6 +10,7 @@ from featureExtractors import *
 import torch
 import torch.cuda
 import torch.optim as optim
+from torch.utils.tensorboard import SummaryWriter
 
 inf = 1000000
 
@@ -28,12 +29,13 @@ class PacmanDQAgent(DQAgent):
             self.dqnet = DQN(n_features=9)
         if torch.cuda.is_available():
             self.dqnet.cuda()
-        self.opti = optim.Adam(self.dqnet.parameters(), lr=.01)
+        self.opti = optim.Adam(self.dqnet.parameters(), lr=.001)
         self.scheduler = optim.lr_scheduler.StepLR(self.opti, 10000, gamma=.1)
         self.feat_extractor = util.lookup('ComplexExtractor', globals())()
         self.action_mapping = {'North':0, 'South':1, 'East':2, 'West':3, 'Stop':4}
         self.action_mapping_reverse = {0:'North', 1:'South', 2:'East', 3: 'West', 4: 'Stop'}
         self.replay_buffer = []
+        self.summary_writer = SummaryWriter()
         self.index = index
         self.isDead = False
         self.hasStarted = False
@@ -44,6 +46,7 @@ class PacmanDQAgent(DQAgent):
     
     def getFeature(self, state, total_pacmen, agentIndex):
         feature_dict = self.feat_extractor.getFeatures(state, total_pacmen, agentIndex)
+        # print(feature_dict)
         feature = DQN.dict2vec(feature_dict)
         return feature
 
@@ -87,11 +90,10 @@ class PacmanDQAgent(DQAgent):
     
     def update(self, state, action, nextState, reward, total_pacmen, agentIndex, stillTraining):
         reward = pacmenScoreChanges[self.index]
-        print(f"{agentIndex} reward: {reward}")
+        # print(f"{agentIndex} reward: {reward}")
         feature = self.getFeature(state, total_pacmen, agentIndex)
         target = reward + self.discount * self.computeActionValueFromQValues(nextState, total_pacmen, agentIndex)[1]
         self.store_trajectory(feature, target, self.action_mapping[action])
-        # if self.episodesSoFar < self.numTraining:
         if stillTraining:
             self.replay()
         else:
@@ -124,7 +126,7 @@ class PacmanDQAgent(DQAgent):
                 start_index = i*batch_size
                 end_index = min(start_index+batch_size, n_samples)
                 batch_x = torch.from_numpy(x[start_index:end_index])
-                batch_y = torch.from_numpy(y[start_index:end_index])     # ...
+                batch_y = torch.from_numpy(y[start_index:end_index]/10)     # ...
                 batch_action = actions[start_index:end_index]
                 if torch.cuda.is_available():
                     batch_x = batch_x.cuda()
@@ -136,8 +138,9 @@ class PacmanDQAgent(DQAgent):
                 loss.backward()
                 self.opti.step()
                 avg_loss += loss.detach().cpu().numpy()
-            self.scheduler.step()
-        # print(">>> agent {} - average loss {} - lr {}".format(self.index, avg_loss/batches/epochs, self.scheduler.get_lr()))
+            # self.scheduler.step()
+        self.summary_writer.add_scalar(f"agent {self.index}", avg_loss/batches/epochs)
+        print(">>> agent {} - average loss {} - lr {}".format(self.index, avg_loss/batches/epochs, self.scheduler.get_lr()))
 
     def final(self, state, total_pacmen, agentIndex, stillTraining, forceFinish):
         "Called at the end of each game."
@@ -151,4 +154,6 @@ class PacmanDQAgent(DQAgent):
             if not os.path.exists('model_param'):
                 os.makedirs('model_param')
             # torch.save(self.dqnet, f"model_param/dqn_{agentIndex}.pt")
-            print(f"DQN model for pacman {agentIndex} saved at 'model_param/dqn_{agentIndex}.pt'")
+            # print(f"DQN model for pacman {agentIndex} saved at 'model_param/dqn_{agentIndex}.pt'")
+            self.dqnet.eval()
+            self.summary_writer.close()
