@@ -121,7 +121,7 @@ class GameState:
 
         # Time passes
         if agentIndex < total_pacmen:
-            # state.data.scoreChange += -TIME_PENALTY  # Penalty for waiting around
+            state.data.scoreChange += -TIME_PENALTY  # Penalty for waiting around
             agent.scoreChange += -TIME_PENALTY
         else:
             GhostRules.decrementTimer(state.data.agentStates[agentIndex])
@@ -383,7 +383,7 @@ class PacmanRules:
         x, y = position
         # Eat food
         if state.data.food[x][y]:
-            # state.data.scoreChange += 10
+            state.data.scoreChange += 10
             agent.scoreChange += 11
             state.data.food = state.data.food.copy()
             state.data.food[x][y] = False
@@ -391,12 +391,12 @@ class PacmanRules:
             # TODO: cache numFood?
             numFood = state.getNumFood()
             if numFood == 0 and not state.data._lose:
-                # state.data.scoreChange += 500
+                state.data.scoreChange += 500
                 agent.scoreChange += 501
                 state.data._win = True
         # Eat capsule
         if(position in state.getCapsules()):
-            # state.data.scoreChange += 11
+            state.data.scoreChange += 11
             agent.scoreChange += 12
             state.data.capsules.remove(position)
             state.data._capsuleEaten = position
@@ -492,20 +492,22 @@ class GhostRules:
 
     def collide(state, ghostState, ghostIndex, pacmanIndex, pacmenAgents, total_pacmen):
         if ghostState.scaredTimer > 0:
-            # state.data.scoreChange += 200
+            state.data.scoreChange += 200
             pacmenAgents[pacmanIndex].scoreChange += 200
+            state.data.collidedPacman = pacmanIndex
             GhostRules.placeGhost(state, ghostState)
             ghostState.scaredTimer = 0
             # Added for first-person
             state.data._eaten[ghostIndex] = True
         else:
             if not state.data._win:
-                # state.data.scoreChange -= 500
+                state.data.scoreChange -= 500
                 pacmenAgents[pacmanIndex].scoreChange -= 500
                 # mark this Pacman as dead
                 deadPacman = pacmenAgents[pacmanIndex]
                 deadPacman.isDead = True
                 state.data.deadPacmanIndex = pacmanIndex
+                state.data.collidedPacman = pacmanIndex
                 # check if all pacmen die
                 isAllPacmenDie = GhostRules.checkAllPacmenDie(total_pacmen, pacmenAgents)
                 if isAllPacmenDie == True:

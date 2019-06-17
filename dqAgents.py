@@ -86,7 +86,8 @@ class PacmanDQAgent(DQAgent):
         return self.computeActionValueFromQValues(state, total_pacmen, agentIndex)[1]
     
     def update(self, state, action, nextState, reward, total_pacmen, agentIndex, stillTraining):
-        reward = pacmenScoreChanges[self.index+1]
+        reward = pacmenScoreChanges[self.index]
+        print(f"{agentIndex} reward: {reward}")
         feature = self.getFeature(state, total_pacmen, agentIndex)
         target = reward + self.discount * self.computeActionValueFromQValues(nextState, total_pacmen, agentIndex)[1]
         self.store_trajectory(feature, target, self.action_mapping[action])
