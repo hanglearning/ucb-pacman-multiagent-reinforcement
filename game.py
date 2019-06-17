@@ -416,6 +416,8 @@ class GameStateData:
         self.scoreChange = 0
         # mark if there's dead pacman in the current game state
         self.deadPacmanIndex = None
+        # mark the pacman index if two opponents collide. primarily used for updating pacman's reward purpose
+        self.collidedPacman = None
 
     def deepCopy(self):
         state = GameStateData(self)
@@ -770,14 +772,17 @@ class Game:
                         self.mute(deadPacmanIndex)
                         forceFinish = False
                         deadPacman.final(self.state, total_pacmen, deadPacmanIndex, stillTraining, forceFinish)
+                        # update its death "reward"
+                        pacmenScoreChanges[deadPacmanIndex] = deadPacman.scoreChange
+                        if 'observationFunction' in dir(deadPacman):
+                            observation = deadPacman.observationFunction(self.state.deepCopy(), total_pacmen, deadPacmanIndex, stillTraining)
                         self.unmute()
                     except Exception as data:
                         if not self.catchExceptions:
                             raise
                         self._agentCrash(deadPacmanIndex)
                         self.unmute()
-                        return
-                self.state.deadPacmanIndex = None                
+                        return              
             
 
             # Allow for game specific conditions (winning, losing, etc.)
@@ -789,6 +794,18 @@ class Game:
             ###idx = agentIndex - agentIndex % 2 + 1
             ###self.display.update( self.state.makeObservation(idx).data )
 
+            # update pacman scoreChange
+            if self.state.data.deadPacmanIndex == None:
+                if agent.isPacman == True or self.state.data.collidedPacman != None:
+                    if agentIndex < total_pacmen:
+                        # current agent is pacman
+                        pacmenScoreChanges[agentIndex] = agent.scoreChange
+                    else:
+                        collidedPacmanIndex = self.state.data.collidedPacman
+                        pacmenScoreChanges[collidedPacmanIndex] = self.agents[collidedPacmanIndex].scoreChange
+                        self.state.data.collidedPacman = None
+            self.state.deadPacmanIndex = None
+
             # Track progress
             if agentIndex == numAgents + 1:
                 self.numMoves += 1
@@ -797,10 +814,6 @@ class Game:
 
             if _BOINC_ENABLED:
                 boinc.set_fraction_done(self.getProgress())
-
-            # update pacman scoreChange
-            if agent.isPacman == True:
-                pacmenScoreChanges[agentIndex] = agent.scoreChange
 
         # Only used for ghosts after changing to end the game iff all pacmen die
         for agentIndex, agent in enumerate(self.agents):
