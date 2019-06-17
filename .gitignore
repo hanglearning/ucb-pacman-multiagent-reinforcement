@@ -6,6 +6,7 @@ model_param
 layouts/Multi_Pacmen_Layouts/
 .vscode/
 model_param/
+runs/
 
 # Compiled source #
 ###################
