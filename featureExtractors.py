@@ -56,7 +56,7 @@ def closestFood(pos, food, walls):
         expanded.add((pos_x, pos_y))
         # if we find a food at this location then exit
         if food[pos_x][pos_y]:
-            return (pos_x, pos_y)
+            return (pos_x, pos_y, dist)
         # otherwise spread out from the location to its neighbours
         nbrs = Actions.getLegalNeighbors((pos_x, pos_y), walls)
         for nbr_x, nbr_y in nbrs:
@@ -73,52 +73,96 @@ def closestCapsule(pos, capsule, walls):
             continue
         expanded.add((pos_x, pos_y))
         if (pos_x, pos_y) in capsule:
-            return (pos_x, pos_y)
+            return (pos_x, pos_y, dist)
         nbrs = Actions.getLegalNeighbors((pos_x, pos_y), walls)
         for nbr_x, nbr_y in nbrs:
             fringe.append((nbr_x, nbr_y, dist+1))
     return None
 
-class SimpleExtractor(FeatureExtractor):
-    """
-    Returns simple features for a basic reflex Pacman:
-    - whether food will be eaten
-    - how far away the next food is
-    - whether a ghost collision is imminent
-    - whether a ghost is one step away
-    """
+# class SimpleExtractor(FeatureExtractor):
+#     """
+#     Returns simple features for a basic reflex Pacman:
+#     - whether food will be eaten
+#     - how far away the next food is
+#     - whether a ghost collision is imminent
+#     - whether a ghost is one step away
+#     """
 
-    def getFeatures(self, state, action):
+#     def getFeatures(self, state, action):
+#         # extract the grid of food and wall locations and get the ghost locations
+#         food = state.getFood()
+#         walls = state.getWalls()
+#         ghosts = state.getGhostPositions()
+
+#         features = util.Counter()
+
+#         features["bias"] = 1.0
+
+#         # compute the location of pacman after he takes the action
+#         x, y = state.getPacmanPosition()
+#         dx, dy = Actions.directionToVector(action)
+#         next_x, next_y = int(x + dx), int(y + dy)
+
+#         # count the number of ghosts 1-step away
+#         features["#-of-ghosts-1-step-away"] = sum((next_x, next_y) in Actions.getLegalNeighbors(g, walls) for g in ghosts)
+
+#         # if there is no danger of ghosts then add the food feature
+#         if not features["#-of-ghosts-1-step-away"] and food[next_x][next_y]:
+#             features["eats-food"] = 1.0
+
+#         dist = closestFood((next_x, next_y), food, walls)
+#         if dist is not None:
+#             # make the distance a number less than one otherwise the update
+#             # will diverge wildly
+#             features["closest-food"] = float(dist) / (walls.width * walls.height)
+#         features.divideAll(10.0)
+#         return features
+
+class ComplexExtractor(FeatureExtractor):
+    def getFeatures(self, state, action, agentIndex, total_pacmen):
         # extract the grid of food and wall locations and get the ghost locations
         food = state.getFood()
         walls = state.getWalls()
-        ghosts = state.getGhostPositions()
+        ghosts = state.getGhostPositions(total_pacmen)
+        ghosts_state = state.getGhostStates(total_pacmen)
 
         features = util.Counter()
 
-        features["bias"] = 1.0
-
         # compute the location of pacman after he takes the action
-        x, y = state.getPacmanPosition()
+        x, y = state.getPacmanPosition(agentIndex)
         dx, dy = Actions.directionToVector(action)
         next_x, next_y = int(x + dx), int(y + dy)
 
         # count the number of ghosts 1-step away
         features["#-of-ghosts-1-step-away"] = sum((next_x, next_y) in Actions.getLegalNeighbors(g, walls) for g in ghosts)
+        features["#-of-ghosts-1-step-away-edible"] = sum((next_x, next_y) in Actions.getLegalNeighbors(g, walls) for i, g in enumerate(ghosts) if ghosts_state[i].scaredTimer > 0)
 
         # if there is no danger of ghosts then add the food feature
+        features["eats-food"] = 0.
         if not features["#-of-ghosts-1-step-away"] and food[next_x][next_y]:
-            features["eats-food"] = 1.0
+            features["eats-food"] = 1.
+        
+        dist_ghost = list(map(lambda pos_g: abs(pos_g[0]-next_x)+abs(pos_g[1]-next_y), ghosts[:-1]))
+        nearest = walls.width * walls.height
+        features["nearest-ghost-edible"] = 0.
+        for i, d in enumerate(dist_ghost):
+            if d < nearest:
+                nearest = d
+                if ghosts_state[i].scaredTimer > 0:
+                    features["nearest-ghost-edible"] = 10.
+        features["closest-ghost"] = nearest / (walls.width * walls.height)
 
         dist = closestFood((next_x, next_y), food, walls)
         if dist is not None:
-            # make the distance a number less than one otherwise the update
-            # will diverge wildly
-            features["closest-food"] = float(dist) / (walls.width * walls.height)
+            features["closest-food"] = float(dist[2]) / (walls.width * walls.height)
+
         features.divideAll(10.0)
+
+        features["bias"] = 1.0
+
         return features
 
-class ComplexExtractor(FeatureExtractor):
+class ComplexExtractor_DQN(FeatureExtractor):
     def getFeatures(self, state, agentIndex, total_pacmen):
         # extract the grid of food and wall locations and get the ghost locations
         food = state.getFood()

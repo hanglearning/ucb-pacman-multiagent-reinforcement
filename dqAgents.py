@@ -30,12 +30,13 @@ class PacmanDQAgent(DQAgent):
         if torch.cuda.is_available():
             self.dqnet.cuda()
         self.opti = optim.Adam(self.dqnet.parameters(), lr=.001)
-        self.scheduler = optim.lr_scheduler.StepLR(self.opti, 10000, gamma=.1)
-        self.feat_extractor = util.lookup('ComplexExtractor', globals())()
+        self.scheduler = optim.lr_scheduler.StepLR(self.opti, 3200, gamma=.1)
+        self.feat_extractor = util.lookup('ComplexExtractor_DQN', globals())()
         self.action_mapping = {'North':0, 'South':1, 'East':2, 'West':3, 'Stop':4}
         self.action_mapping_reverse = {0:'North', 1:'South', 2:'East', 3: 'West', 4: 'Stop'}
         self.replay_buffer = []
         self.summary_writer = SummaryWriter()
+        self.global_step = 0
         self.index = index
         self.isDead = False
         self.hasStarted = False
@@ -89,11 +90,11 @@ class PacmanDQAgent(DQAgent):
         return self.computeActionValueFromQValues(state, total_pacmen, agentIndex)[1]
     
     def update(self, state, action, nextState, reward, total_pacmen, agentIndex, stillTraining):
-        reward = pacmenScoreChanges[self.index]
+        reward = pacmenScoreChanges[self.index] / 10
         # print(f"{agentIndex} reward: {reward}")
         feature = self.getFeature(state, total_pacmen, agentIndex)
         target = reward + self.discount * self.computeActionValueFromQValues(nextState, total_pacmen, agentIndex)[1]
-        self.store_trajectory(feature, target, self.action_mapping[action])
+        self.store_trajectory(feature, reward, self.action_mapping[action])
         if stillTraining:
             self.replay()
         else:
@@ -104,9 +105,10 @@ class PacmanDQAgent(DQAgent):
     
     def replay(self):
         n_samples = len(self.replay_buffer)
-        x = np.array([pairs[0] for pairs in self.replay_buffer[-min(1000, n_samples):]]).astype(np.float32)
-        y = np.array([pairs[1] for pairs in self.replay_buffer[-min(1000, n_samples):]]).astype(np.float32)[:,np.newaxis]
-        actions = np.array([pairs[2] for pairs in self.replay_buffer[-min(1000, n_samples):]]).astype(np.long)
+        buffer_start = min(500, n_samples)
+        x = np.array([pairs[0] for pairs in self.replay_buffer[-buffer_start:]]).astype(np.float32)
+        y = np.array([pairs[1] for pairs in self.replay_buffer[-buffer_start:]]).astype(np.float32)[:,np.newaxis]
+        actions = np.array([pairs[2] for pairs in self.replay_buffer[-buffer_start:]]).astype(np.long)
         self.train(x, y, actions)
     
     def train(self, x, y, actions):
@@ -126,7 +128,7 @@ class PacmanDQAgent(DQAgent):
                 start_index = i*batch_size
                 end_index = min(start_index+batch_size, n_samples)
                 batch_x = torch.from_numpy(x[start_index:end_index])
-                batch_y = torch.from_numpy(y[start_index:end_index]/10)     # ...
+                batch_y = torch.from_numpy(y[start_index:end_index])
                 batch_action = actions[start_index:end_index]
                 if torch.cuda.is_available():
                     batch_x = batch_x.cuda()
@@ -139,7 +141,8 @@ class PacmanDQAgent(DQAgent):
                 self.opti.step()
                 avg_loss += loss.detach().cpu().numpy()
             # self.scheduler.step()
-        self.summary_writer.add_scalar(f"agent {self.index}", avg_loss/batches/epochs)
+        self.summary_writer.add_scalar(f"agent {self.index}", avg_loss/batches/epochs, global_step=self.global_step)
+        self.global_step += 1
         print(">>> agent {} - average loss {} - lr {}".format(self.index, avg_loss/batches/epochs, self.scheduler.get_lr()))
 
     def final(self, state, total_pacmen, agentIndex, stillTraining, forceFinish):

@@ -392,12 +392,12 @@ class PacmanRules:
             numFood = state.getNumFood()
             if numFood == 0 and not state.data._lose:
                 state.data.scoreChange += 500
-                agent.scoreChange += 501
+                agent.scoreChange += 500
                 state.data._win = True
         # Eat capsule
         if(position in state.getCapsules()):
-            state.data.scoreChange += 11
-            agent.scoreChange += 12
+            state.data.scoreChange += 10
+            agent.scoreChange += 11
             state.data.capsules.remove(position)
             state.data._capsuleEaten = position
             # Reset all ghosts' scared timers

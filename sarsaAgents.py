@@ -25,7 +25,7 @@ def createApproximateSarsaAgent(num_pacmen, agent, start_index, **args):
     return [eval(agent)(index=i, **args) for i in range(start_index, start_index + num_pacmen)]
 
 class PacmanSarsaAgent(ReinforcementAgent):
-    def __init__(self, index, epsilon=0.05, gamma=0.8, alpha=0.2, numTraining=0, **args):
+    def __init__(self, index, epsilon=0.05, gamma=0.8, alpha=0.1, numTraining=0, **args):
         args['epsilon'] = epsilon
         args['gamma'] = gamma
         args['alpha'] = alpha
