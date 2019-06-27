@@ -64,6 +64,21 @@ def closestFood(pos, food, walls):
     # no food found
     return None
 
+def closestAgent(pos, agent, walls):
+    fringe = [(pos[0], pos[1], 0)]
+    expanded = set()
+    while fringe:
+        pos_x, pos_y, dist = fringe.pop(0)
+        if (pos_x, pos_y) in expanded:
+            continue
+        expanded.add((pos_x, pos_y))
+        if (pos_x, pos_y) in agent:
+            return (pos_x, pos_y, dist)
+        nbrs = Actions.getLegalNeighbors((pos_x, pos_y), walls)
+        for nbr_x, nbr_y in nbrs:
+            fringe.append((nbr_x, nbr_y, dist+1))
+    return None
+
 def closestCapsule(pos, capsule, walls):
     fringe = [(pos[0], pos[1], 0)]
     expanded = set()
@@ -155,6 +170,10 @@ class ComplexExtractor(FeatureExtractor):
         dist = closestFood((next_x, next_y), food, walls)
         if dist is not None:
             features["closest-food"] = float(dist[2]) / (walls.width * walls.height)
+        
+        if total_pacmen > 1:
+            pacmans = [state.getPacmanPosition(i) for i in range(total_pacmen) if not i == agentIndex]
+            features["closest-pacman"] = closestAgent((next_x, next_y), pacmans, walls)[2] / (walls.width * walls.height)
 
         features.divideAll(10.0)
 
